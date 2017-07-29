@@ -4,7 +4,7 @@ import luxe.Sprite;
 
 import components.Movement;
 import components.PlayerController;
-// import components.MovementParticles;
+import components.MovementParticles;
 
 import luxe.Color;
 import luxe.Vector;
@@ -31,7 +31,7 @@ class Player extends Sprite {
 		add(new PlayerController()); // handles input
 
 		// attach movement particles component
-		// add(new MovementParticles());
+		add(new MovementParticles());
 
 	}
 
