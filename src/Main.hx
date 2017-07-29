@@ -89,8 +89,11 @@ class Main extends luxe.Game {
 	override function config(config:luxe.GameConfig) {
 
 		config.preload.textures.push({ id: 'assets/images/player_animation.png' });
-
 		config.preload.jsons.push({ id: 'assets/animations/player_animation.json' });
+
+		config.preload.textures.push({ id: 'assets/images/dungeon.png' });
+		config.preload.textures.push({ id: 'assets/images/gun.png' });
+		config.preload.textures.push({ id: 'assets/images/bullet.png' });
 
 		return config;
 

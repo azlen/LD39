@@ -4,6 +4,7 @@ import luxe.Sprite;
 
 import luxe.Vector;
 import luxe.Input;
+import phoenix.Texture;
 
 import entities.Bullet;
 
@@ -15,10 +16,14 @@ class Gun extends Sprite {
 
 	override public function new() {
 
+		var image = Luxe.resources.texture('assets/images/gun.png');
+		image.filter_min = image.filter_mag = FilterType.nearest;
+
 		super({
 			name: 'Gun',
+			texture: image,
 			pos: new Vector(100, 100),
-			size: new Vector(40, 20),
+			size: new Vector(64, 64),
 		});
 
 	}
@@ -43,6 +48,12 @@ class Gun extends Sprite {
 		pos.copy_from(player.pos).add(offset);
 
 		radians = offset.angle2D;
+
+		if(rotation_z > 90 || rotation_z < -90) {
+			flipy = true;
+		} else {
+			flipy = false;
+		}
 	}
 
 	function spawn_bullet() {
