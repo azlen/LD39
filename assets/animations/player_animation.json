@@ -1,0 +1,38 @@
+{
+	"idle_side" : {
+		"frame_size":{ "x":16, "y":16 },
+		"frameset": ["1-2"],
+		"loop": true,
+		"speed": 2
+	},
+	"walk_side" : {
+		"frame_size":{ "x":16, "y":16 },
+		"frameset": ["9-14"],
+		"loop": true,
+		"speed": 12
+	},
+	"idle_front" : {
+		"frame_size":{ "x":16, "y":16 },
+		"frameset": ["17-18"],
+		"loop": true,
+		"speed": 2
+	},
+	"walk_front" : {
+		"frame_size":{ "x":16, "y":16 },
+		"frameset": ["25-30"],
+		"loop": true,
+		"speed": 16
+	},
+	"idle_back" : {
+		"frame_size":{ "x":16, "y":16 },
+		"frameset": ["33-34"],
+		"loop": true,
+		"speed": 2
+	},
+	"walk_back" : {
+		"frame_size":{ "x":16, "y":16 },
+		"frameset": ["41-46"],
+		"loop": true,
+		"speed": 16
+	}
+}
