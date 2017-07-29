@@ -3,6 +3,7 @@ import luxe.Input;
 import luxe.Vector;
 
 import entities.Player;
+import entities.Gun;
 
 #if (!web)
 	import luxe.gifcapture.LuxeGifCapture;
@@ -20,6 +21,7 @@ class Main extends luxe.Game {
 	override function ready() {
 
 		player = new Player();
+		new Gun();
 
 		connect_input();
 		

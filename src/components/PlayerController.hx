@@ -96,7 +96,6 @@ class PlayerController extends Component {
 
 	function update_animation() {
 		if(velocity.length > 0) {
-			trace(velocity.x);
 			if(velocity.x != 0) {
 				set_animation('walk_side');
 			}else {
