@@ -9,16 +9,21 @@ import components.PlayerController;
 import luxe.Color;
 import luxe.Vector;
 
+import phoenix.Texture;
+
 class Player extends Sprite {
 
 	override public function new(){
 
+		var image = Luxe.resources.texture('assets/images/player_animation.png');
+		image.filter_min = image.filter_mag = FilterType.nearest;
+
 		// initialize player
 		super({
 			name: 'Player',
+			texture: image,
 			pos: Luxe.screen.mid,
-			color: new Color().rgb(0x00FFA6),
-			size: new Vector(32, 64)
+			size: new Vector(64, 64)
 		});
 
 		// attach player controller

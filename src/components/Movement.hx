@@ -3,8 +3,11 @@ package components;
 import luxe.Component;
 
 import luxe.Vector;
+import luxe.Sprite;
 
 class Movement extends Component {
+
+	var sprite : Sprite;
 
 	public var max_move_speed = 200;
 	var acceleration_time = 0.1;
@@ -25,27 +28,39 @@ class Movement extends Component {
 
 	override function init() {
 
+		sprite = cast entity;
+
 	} // init
 
 	override function update(dt:Float) {
 
-		// move entity
+		// move sprite
+
+		if(direction.x > 0) {
+			sprite.flipx = false;
+		}else if(direction.x < 0) {
+			sprite.flipx = true;
+		}
 
 		if(direction.length != 0) {
 			direction.length = 1;
 
 			accelerate(dt);
 
+			if(direction.x == 0) { decelerate_x(dt); }
+			if(direction.y == 0) { decelerate_y(dt); }
+
 			if(is_moving == false) {
-				entity.events.fire('movement.start');
+				sprite.events.fire('movement.start');
 			}
 
 			is_moving = true;
 		} else {
-			decelerate(dt);
+			decelerate_x(dt);
+			decelerate_y(dt);
 
 			if(is_moving == true) {
-				entity.events.fire('movement.stop');
+				sprite.events.fire('movement.stop');
 			}
 
 			is_moving = false;
@@ -58,7 +73,7 @@ class Movement extends Component {
 	function accelerate(dt:Float) {
 
 		velocity.x += direction.x * (max_move_speed / acceleration_time) * dt;
-		velocity.y += (direction.y / 2) * (max_move_speed / acceleration_time) * dt;
+		velocity.y += direction.y * (max_move_speed / acceleration_time) * dt;
 
 		if(velocity.length > max_move_speed) {
 			velocity.length = max_move_speed;
@@ -66,10 +81,13 @@ class Movement extends Component {
 
 	} // accelerate
 
-	function decelerate(dt:Float) {
+	function decelerate_x(dt:Float) {
+		velocity.x = Math.max(velocity.x - (max_move_speed / deceleration_time) * dt, 0);
+	} // decelerate_x
 
-		velocity.length = Math.max(velocity.length - (max_move_speed / deceleration_time) * dt, 0);
-
-	} // decelerate
+	function decelerate_y(dt:Float) {
+		velocity.y = Math.max(velocity.y - (max_move_speed / deceleration_time) * dt, 0);
+		// velocity.length = Math.max(velocity.length - (max_move_speed / deceleration_time) * dt, 0);
+	} // decelerate_y
 
 }
