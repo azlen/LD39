@@ -396,6 +396,7 @@ Main.__super__ = luxe_Game;
 Main.prototype = $extend(luxe_Game.prototype,{
 	ready: function() {
 		this.player = new entities_Player();
+		new entities_Gun();
 		this.connect_input();
 	}
 	,onkeyup: function(e) {
@@ -1406,7 +1407,6 @@ components_PlayerController.prototype = $extend(luxe_Component.prototype,{
 	,update_animation: function() {
 		var _this = this.velocity;
 		if(Math.sqrt(_this.x * _this.x + _this.y * _this.y + _this.z * _this.z) > 0) {
-			haxe_Log.trace(this.velocity.x,{ fileName : "PlayerController.hx", lineNumber : 99, className : "components.PlayerController", methodName : "update_animation"});
 			if(this.velocity.x != 0) {
 				if(this.anim.animation != "walk_side") {
 					this.anim.set_animation("walk_side");
@@ -3426,6 +3426,416 @@ luxe_Sprite.prototype = $extend(luxe_Visual.prototype,{
 	}
 	,__class__: luxe_Sprite
 	,__properties__: $extend(luxe_Visual.prototype.__properties__,{set_uv:"set_uv",set_flipy:"set_flipy",set_flipx:"set_flipx",set_centered:"set_centered"})
+});
+var entities_Bullet = function(position,direction) {
+	luxe_Sprite.call(this,{ pos : position, size : new phoenix_Vector(10,10)});
+	var _component = new components_Movement();
+	this.component_count++;
+	var movement_component = this._components.add(_component);
+	movement_component.direction = direction;
+	movement_component.max_move_speed = 500;
+};
+$hxClasses["entities.Bullet"] = entities_Bullet;
+entities_Bullet.__name__ = ["entities","Bullet"];
+entities_Bullet.__super__ = luxe_Sprite;
+entities_Bullet.prototype = $extend(luxe_Sprite.prototype,{
+	init: function() {
+		luxe_Sprite.prototype.init.call(this);
+	}
+	,ondestroy: function() {
+		luxe_Sprite.prototype.ondestroy.call(this);
+	}
+	,__class__: entities_Bullet
+});
+var entities_Gun = function() {
+	this.mouse_pos = new phoenix_Vector(0,0);
+	luxe_Sprite.call(this,{ name : "Gun", pos : new phoenix_Vector(100,100), size : new phoenix_Vector(40,20)});
+};
+$hxClasses["entities.Gun"] = entities_Gun;
+entities_Gun.__name__ = ["entities","Gun"];
+entities_Gun.__super__ = luxe_Sprite;
+entities_Gun.prototype = $extend(luxe_Sprite.prototype,{
+	init: function() {
+		var _this = Luxe.scene.entities;
+		this.player = __map_reserved["Player"] != null ? _this.getReserved("Player") : _this.h["Player"];
+		this._listen(19,$bind(this,this.onmousemove),true);
+		this._listen(17,$bind(this,this.onmousedown),true);
+	}
+	,onmousemove: function(event) {
+		this.mouse_pos = event.pos;
+	}
+	,onmousedown: function(event) {
+		this.spawn_bullet();
+	}
+	,update: function(dt) {
+		var _this = this.mouse_pos;
+		var _this1 = new phoenix_Vector(_this.x,_this.y,_this.z,_this.w);
+		var other = this.player.get_pos();
+		if(other == null) {
+			throw new js__$Boot_HaxeError(luxe_DebugError.null_assertion("other was null"));
+		}
+		var _x = _this1.x - other.x;
+		var _y = _this1.y - other.y;
+		var _z = _this1.z - other.z;
+		var prev = _this1.ignore_listeners;
+		_this1.ignore_listeners = true;
+		_this1.x = _x;
+		if(!_this1._construct) {
+			if(_this1.listen_x != null && !_this1.ignore_listeners) {
+				_this1.listen_x(_x);
+			}
+		}
+		_this1.y = _y;
+		if(!_this1._construct) {
+			if(_this1.listen_y != null && !_this1.ignore_listeners) {
+				_this1.listen_y(_y);
+			}
+		}
+		_this1.z = _z;
+		if(!_this1._construct) {
+			if(_this1.listen_z != null && !_this1.ignore_listeners) {
+				_this1.listen_z(_z);
+			}
+		}
+		_this1.ignore_listeners = prev;
+		if(_this1.listen_x != null && !_this1.ignore_listeners) {
+			_this1.listen_x(_this1.x);
+		}
+		if(_this1.listen_y != null && !_this1.ignore_listeners) {
+			_this1.listen_y(_this1.y);
+		}
+		if(_this1.listen_z != null && !_this1.ignore_listeners) {
+			_this1.listen_z(_this1.z);
+		}
+		var offset = _this1;
+		var v = Math.sqrt(offset.x * offset.x + offset.y * offset.y + offset.z * offset.z);
+		if(v != 0) {
+			var _x1 = offset.x / v;
+			var _y1 = offset.y / v;
+			var _z1 = offset.z / v;
+			var prev1 = offset.ignore_listeners;
+			offset.ignore_listeners = true;
+			offset.x = _x1;
+			if(!offset._construct) {
+				if(offset.listen_x != null && !offset.ignore_listeners) {
+					offset.listen_x(_x1);
+				}
+			}
+			offset.y = _y1;
+			if(!offset._construct) {
+				if(offset.listen_y != null && !offset.ignore_listeners) {
+					offset.listen_y(_y1);
+				}
+			}
+			offset.z = _z1;
+			if(!offset._construct) {
+				if(offset.listen_z != null && !offset.ignore_listeners) {
+					offset.listen_z(_z1);
+				}
+			}
+			offset.ignore_listeners = prev1;
+			if(offset.listen_x != null && !offset.ignore_listeners) {
+				offset.listen_x(offset.x);
+			}
+			if(offset.listen_y != null && !offset.ignore_listeners) {
+				offset.listen_y(offset.y);
+			}
+			if(offset.listen_z != null && !offset.ignore_listeners) {
+				offset.listen_z(offset.z);
+			}
+		} else {
+			var prev2 = offset.ignore_listeners;
+			offset.ignore_listeners = true;
+			offset.x = 0;
+			if(!offset._construct) {
+				if(offset.listen_x != null && !offset.ignore_listeners) {
+					offset.listen_x(0);
+				}
+			}
+			offset.y = 0;
+			if(!offset._construct) {
+				if(offset.listen_y != null && !offset.ignore_listeners) {
+					offset.listen_y(0);
+				}
+			}
+			offset.z = 0;
+			if(!offset._construct) {
+				if(offset.listen_z != null && !offset.ignore_listeners) {
+					offset.listen_z(0);
+				}
+			}
+			offset.ignore_listeners = prev2;
+			if(offset.listen_x != null && !offset.ignore_listeners) {
+				offset.listen_x(offset.x);
+			}
+			if(offset.listen_y != null && !offset.ignore_listeners) {
+				offset.listen_y(offset.y);
+			}
+			if(offset.listen_z != null && !offset.ignore_listeners) {
+				offset.listen_z(offset.z);
+			}
+		}
+		var _this2 = offset;
+		var _x2 = _this2.x * 50;
+		var _y2 = _this2.y * 50;
+		var _z2 = _this2.z * 50;
+		var prev3 = _this2.ignore_listeners;
+		_this2.ignore_listeners = true;
+		_this2.x = _x2;
+		if(!_this2._construct) {
+			if(_this2.listen_x != null && !_this2.ignore_listeners) {
+				_this2.listen_x(_x2);
+			}
+		}
+		_this2.y = _y2;
+		if(!_this2._construct) {
+			if(_this2.listen_y != null && !_this2.ignore_listeners) {
+				_this2.listen_y(_y2);
+			}
+		}
+		_this2.z = _z2;
+		if(!_this2._construct) {
+			if(_this2.listen_z != null && !_this2.ignore_listeners) {
+				_this2.listen_z(_z2);
+			}
+		}
+		_this2.ignore_listeners = prev3;
+		if(_this2.listen_x != null && !_this2.ignore_listeners) {
+			_this2.listen_x(_this2.x);
+		}
+		if(_this2.listen_y != null && !_this2.ignore_listeners) {
+			_this2.listen_y(_this2.y);
+		}
+		if(_this2.listen_z != null && !_this2.ignore_listeners) {
+			_this2.listen_z(_this2.z);
+		}
+		var _this3 = this.get_pos();
+		var _other = this.player.get_pos();
+		var _x3 = _other.x;
+		var _y3 = _other.y;
+		var _z3 = _other.z;
+		var _w = _other.w;
+		var prev4 = _this3.ignore_listeners;
+		_this3.ignore_listeners = true;
+		_this3.x = _x3;
+		if(!_this3._construct) {
+			if(_this3.listen_x != null && !_this3.ignore_listeners) {
+				_this3.listen_x(_x3);
+			}
+		}
+		_this3.y = _y3;
+		if(!_this3._construct) {
+			if(_this3.listen_y != null && !_this3.ignore_listeners) {
+				_this3.listen_y(_y3);
+			}
+		}
+		_this3.z = _z3;
+		if(!_this3._construct) {
+			if(_this3.listen_z != null && !_this3.ignore_listeners) {
+				_this3.listen_z(_z3);
+			}
+		}
+		_this3.w = _w;
+		_this3.ignore_listeners = prev4;
+		if(_this3.listen_x != null && !_this3.ignore_listeners) {
+			_this3.listen_x(_this3.x);
+		}
+		if(_this3.listen_y != null && !_this3.ignore_listeners) {
+			_this3.listen_y(_this3.y);
+		}
+		if(_this3.listen_z != null && !_this3.ignore_listeners) {
+			_this3.listen_z(_this3.z);
+		}
+		var _this4 = _this3;
+		if(offset == null) {
+			throw new js__$Boot_HaxeError(luxe_DebugError.null_assertion("other was null"));
+		}
+		var _x4 = _this4.x + offset.x;
+		var _y4 = _this4.y + offset.y;
+		var _z4 = _this4.z + offset.z;
+		var prev5 = _this4.ignore_listeners;
+		_this4.ignore_listeners = true;
+		_this4.x = _x4;
+		if(!_this4._construct) {
+			if(_this4.listen_x != null && !_this4.ignore_listeners) {
+				_this4.listen_x(_x4);
+			}
+		}
+		_this4.y = _y4;
+		if(!_this4._construct) {
+			if(_this4.listen_y != null && !_this4.ignore_listeners) {
+				_this4.listen_y(_y4);
+			}
+		}
+		_this4.z = _z4;
+		if(!_this4._construct) {
+			if(_this4.listen_z != null && !_this4.ignore_listeners) {
+				_this4.listen_z(_z4);
+			}
+		}
+		_this4.ignore_listeners = prev5;
+		if(_this4.listen_x != null && !_this4.ignore_listeners) {
+			_this4.listen_x(_this4.x);
+		}
+		if(_this4.listen_y != null && !_this4.ignore_listeners) {
+			_this4.listen_y(_this4.y);
+		}
+		if(_this4.listen_z != null && !_this4.ignore_listeners) {
+			_this4.listen_z(_this4.z);
+		}
+		this.set_radians(Math.atan2(offset.y,offset.x));
+	}
+	,spawn_bullet: function() {
+		var _this = this.get_pos();
+		var _this1 = new phoenix_Vector(_this.x,_this.y,_this.z,_this.w);
+		var other = this.player.get_pos();
+		if(other == null) {
+			throw new js__$Boot_HaxeError(luxe_DebugError.null_assertion("other was null"));
+		}
+		var _x = _this1.x - other.x;
+		var _y = _this1.y - other.y;
+		var _z = _this1.z - other.z;
+		var prev = _this1.ignore_listeners;
+		_this1.ignore_listeners = true;
+		_this1.x = _x;
+		if(!_this1._construct) {
+			if(_this1.listen_x != null && !_this1.ignore_listeners) {
+				_this1.listen_x(_x);
+			}
+		}
+		_this1.y = _y;
+		if(!_this1._construct) {
+			if(_this1.listen_y != null && !_this1.ignore_listeners) {
+				_this1.listen_y(_y);
+			}
+		}
+		_this1.z = _z;
+		if(!_this1._construct) {
+			if(_this1.listen_z != null && !_this1.ignore_listeners) {
+				_this1.listen_z(_z);
+			}
+		}
+		_this1.ignore_listeners = prev;
+		if(_this1.listen_x != null && !_this1.ignore_listeners) {
+			_this1.listen_x(_this1.x);
+		}
+		if(_this1.listen_y != null && !_this1.ignore_listeners) {
+			_this1.listen_y(_this1.y);
+		}
+		if(_this1.listen_z != null && !_this1.ignore_listeners) {
+			_this1.listen_z(_this1.z);
+		}
+		var direction = _this1;
+		var v = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
+		if(v != 0) {
+			var _x1 = direction.x / v;
+			var _y1 = direction.y / v;
+			var _z1 = direction.z / v;
+			var prev1 = direction.ignore_listeners;
+			direction.ignore_listeners = true;
+			direction.x = _x1;
+			if(!direction._construct) {
+				if(direction.listen_x != null && !direction.ignore_listeners) {
+					direction.listen_x(_x1);
+				}
+			}
+			direction.y = _y1;
+			if(!direction._construct) {
+				if(direction.listen_y != null && !direction.ignore_listeners) {
+					direction.listen_y(_y1);
+				}
+			}
+			direction.z = _z1;
+			if(!direction._construct) {
+				if(direction.listen_z != null && !direction.ignore_listeners) {
+					direction.listen_z(_z1);
+				}
+			}
+			direction.ignore_listeners = prev1;
+			if(direction.listen_x != null && !direction.ignore_listeners) {
+				direction.listen_x(direction.x);
+			}
+			if(direction.listen_y != null && !direction.ignore_listeners) {
+				direction.listen_y(direction.y);
+			}
+			if(direction.listen_z != null && !direction.ignore_listeners) {
+				direction.listen_z(direction.z);
+			}
+		} else {
+			var prev2 = direction.ignore_listeners;
+			direction.ignore_listeners = true;
+			direction.x = 0;
+			if(!direction._construct) {
+				if(direction.listen_x != null && !direction.ignore_listeners) {
+					direction.listen_x(0);
+				}
+			}
+			direction.y = 0;
+			if(!direction._construct) {
+				if(direction.listen_y != null && !direction.ignore_listeners) {
+					direction.listen_y(0);
+				}
+			}
+			direction.z = 0;
+			if(!direction._construct) {
+				if(direction.listen_z != null && !direction.ignore_listeners) {
+					direction.listen_z(0);
+				}
+			}
+			direction.ignore_listeners = prev2;
+			if(direction.listen_x != null && !direction.ignore_listeners) {
+				direction.listen_x(direction.x);
+			}
+			if(direction.listen_y != null && !direction.ignore_listeners) {
+				direction.listen_y(direction.y);
+			}
+			if(direction.listen_z != null && !direction.ignore_listeners) {
+				direction.listen_z(direction.z);
+			}
+		}
+		var _this2 = direction;
+		var _x2 = _this2.x;
+		var _y2 = _this2.y;
+		var _z2 = _this2.z;
+		var prev3 = _this2.ignore_listeners;
+		_this2.ignore_listeners = true;
+		_this2.x = _x2;
+		if(!_this2._construct) {
+			if(_this2.listen_x != null && !_this2.ignore_listeners) {
+				_this2.listen_x(_x2);
+			}
+		}
+		_this2.y = _y2;
+		if(!_this2._construct) {
+			if(_this2.listen_y != null && !_this2.ignore_listeners) {
+				_this2.listen_y(_y2);
+			}
+		}
+		_this2.z = _z2;
+		if(!_this2._construct) {
+			if(_this2.listen_z != null && !_this2.ignore_listeners) {
+				_this2.listen_z(_z2);
+			}
+		}
+		_this2.ignore_listeners = prev3;
+		if(_this2.listen_x != null && !_this2.ignore_listeners) {
+			_this2.listen_x(_this2.x);
+		}
+		if(_this2.listen_y != null && !_this2.ignore_listeners) {
+			_this2.listen_y(_this2.y);
+		}
+		if(_this2.listen_z != null && !_this2.ignore_listeners) {
+			_this2.listen_z(_this2.z);
+		}
+		var _this3 = this.get_pos();
+		new entities_Bullet(new phoenix_Vector(_this3.x,_this3.y,_this3.z,_this3.w),direction);
+	}
+	,ondestroy: function() {
+		luxe_Sprite.prototype.ondestroy.call(this);
+		this._unlisten(19,$bind(this,this.onmousemove),true);
+		this._unlisten(17,$bind(this,this.onmousedown),true);
+	}
+	,__class__: entities_Gun
 });
 var entities_Player = function() {
 	var image = Luxe.resources.cache.get("assets/images/player_animation.png");
