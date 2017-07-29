@@ -27,6 +27,10 @@ class Bullet extends Sprite {
 
 		radians = direction.angle2D;
 
+		if(rotation_z > 90 || rotation_z < -90) {
+			flipx = true;
+		}
+
 	}
 
 }
