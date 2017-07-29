@@ -1,33 +1,39 @@
 {
-  luxe:{
-    window: {
-      width: 960,
-      height: 640,
-      title:'LD39',
-      fullscreen:false,
-      resizable:true,
-      borderless:false
-    }
-  },
+	luxe:{
+		window: {
+			width: 960,
+			height: 640,
+			title:'LD39',
+			fullscreen:false,
+			resizable:true,
+			borderless:false
+		}
+	},
 
-  project : {
-    name : 'LD39',
-    version : '0.0.1',
-    author : 'LD39',
+	project : {
+		name : 'LD39',
+		version : '0.0.1',
+		author : 'LD39',
 
-    app : {
-      name : 'luxe_empty',
-      package : 'com.Azlen Elza.LD39'
-    },
+		app : {
+			name : 'LD39',
+			package : 'com.Azlen Elza.LD39'
+		},
 
-    build : {
-      dependencies : {
-        luxe : '*',
-      }
-    },
+		build : {
+			dependencies : {
+				luxe : '*',
 
-    files : {
-      assets : 'assets/'
-    }
-  }
+				gif : '*',
+				gifcapture : '*',
+				luxe_gifcapture : '*',
+
+				linc_dialogs : '*'
+			}
+		},
+
+		files : {
+			assets : 'assets/'
+		}
+	}
 }
