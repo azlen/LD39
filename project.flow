@@ -1,0 +1,33 @@
+{
+  luxe:{
+    window: {
+      width: 960,
+      height: 640,
+      title:'LD39',
+      fullscreen:false,
+      resizable:true,
+      borderless:false
+    }
+  },
+
+  project : {
+    name : 'LD39',
+    version : '0.0.1',
+    author : 'LD39',
+
+    app : {
+      name : 'luxe_empty',
+      package : 'com.Azlen Elza.LD39'
+    },
+
+    build : {
+      dependencies : {
+        luxe : '*',
+      }
+    },
+
+    files : {
+      assets : 'assets/'
+    }
+  }
+}
