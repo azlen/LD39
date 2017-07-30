@@ -10,6 +10,9 @@ function $extend(from, fields) {
 var C = function() { };
 $hxClasses["C"] = C;
 C.__name__ = ["C"];
+C.unique_id = function() {
+	return C.increment++;
+};
 var EReg = function(r,opt) {
 	this.r = new RegExp(r,opt.split("u").join(""));
 };
@@ -398,14 +401,15 @@ Main.__name__ = ["Main"];
 Main.__super__ = luxe_Game;
 Main.prototype = $extend(luxe_Game.prototype,{
 	ready: function() {
+		this.music = Luxe.resources.cache.get("assets/music/music.wav");
+		Luxe.audio.loop(this.music.source);
 		Luxe.renderer.clear_color = new phoenix_Color().rgb(0);
 		this.create_glow_batcher();
 		this.create_darkness();
 		this.create_HUD();
-		C.world = new entities_World();
 		this.player = new entities_Player();
+		C.world = new entities_World();
 		new entities_Gun();
-		new entities_Enemy("red_led");
 		this.connect_input();
 	}
 	,onkeyup: function(e) {
@@ -449,6 +453,7 @@ Main.prototype = $extend(luxe_Game.prototype,{
 	}
 	,config: function(config) {
 		config.preload.textures.push({ id : "assets/images/player_animation.png"});
+		config.preload.textures.push({ id : "assets/images/red_led_enemy.png"});
 		config.preload.jsons.push({ id : "assets/animations/player_animation.json"});
 		config.preload.textures.push({ id : "assets/images/dungeon.png"});
 		config.preload.textures.push({ id : "assets/images/gun.png"});
@@ -456,6 +461,10 @@ Main.prototype = $extend(luxe_Game.prototype,{
 		config.preload.textures.push({ id : "assets/images/glow.png"});
 		config.preload.textures.push({ id : "assets/images/glow_alpha.png"});
 		config.preload.textures.push({ id : "assets/images/battery.png"});
+		config.preload.sounds.push({ id : "assets/sounds/hurt.wav", is_stream : false});
+		config.preload.sounds.push({ id : "assets/sounds/pickup.wav", is_stream : false});
+		config.preload.sounds.push({ id : "assets/sounds/shoot.wav", is_stream : false});
+		config.preload.sounds.push({ id : "assets/music/music.wav", is_stream : false});
 		return config;
 	}
 	,__class__: Main
@@ -1065,7 +1074,7 @@ components_Energy.prototype = $extend(luxe_Component.prototype,{
 	,update: function(dt) {
 	}
 	,hurt: function(e) {
-		this.value -= 1;
+		this.value -= e.amount;
 		if(this.value <= 0) {
 			this.get_entity().events.fire("die");
 		}
@@ -1220,7 +1229,8 @@ components_Glow.prototype = $extend(luxe_Component.prototype,{
 		return this.diameter = new_value;
 	}
 	,ondestroy: function() {
-		luxe_Component.prototype.ondestroy.call(this);
+		this.glow_sprite.destroy();
+		this.under_glow_sprite.destroy();
 	}
 	,onremoved: function() {
 		luxe_Component.prototype.onremoved.call(this);
@@ -3809,8 +3819,10 @@ luxe_Sprite.prototype = $extend(luxe_Visual.prototype,{
 	,__properties__: $extend(luxe_Visual.prototype.__properties__,{set_uv:"set_uv",set_flipy:"set_flipy",set_flipx:"set_flipx",set_centered:"set_centered"})
 });
 var entities_Bullet = function(position,direction) {
+	this.used = false;
 	var image = Luxe.resources.cache.get("assets/images/bullet.png");
 	image.set_filter_min(image.set_filter_mag(9728));
+	this.hit_sound = Luxe.resources.cache.get("assets/sounds/hurt.wav");
 	luxe_Sprite.call(this,{ pos : position, texture : image, size : new phoenix_Vector(64,64), depth : 9});
 	var _component = new components_Movement();
 	this.component_count++;
@@ -3830,14 +3842,47 @@ entities_Bullet.__name__ = ["entities","Bullet"];
 entities_Bullet.__super__ = luxe_Sprite;
 entities_Bullet.prototype = $extend(luxe_Sprite.prototype,{
 	update: function(dt) {
-		var _g1 = 0;
-		var _g = C.enemies_alive.length;
-		while(_g1 < _g) {
-			var i = _g1++;
-			var enemy = C.enemies_alive[i];
-			if(this.get_pos().x > enemy.get_pos().x - enemy.size.x / 2 && this.get_pos().x < enemy.get_pos().x + enemy.size.x / 2 && this.get_pos().y > enemy.get_pos().y - enemy.size.y / 2 && this.get_pos().y < enemy.get_pos().y + enemy.size.y / 2) {
-				enemy.events.fire("damage");
+		if(!this.used) {
+			var _g1 = 0;
+			var _g = C.enemies_alive.length;
+			while(_g1 < _g) {
+				var i = _g1++;
+				var enemy = C.enemies_alive[i];
+				if(enemy == null) {
+					continue;
+				}
+				if(this.get_pos().x > enemy.get_pos().x - enemy.size.x / 2 && this.get_pos().x < enemy.get_pos().x + enemy.size.x / 2 && this.get_pos().y > enemy.get_pos().y - enemy.size.y / 2 && this.get_pos().y < enemy.get_pos().y + enemy.size.y / 2) {
+					enemy.events.fire("damage",{ amount : 1});
+					this.self_destruct();
+				}
 			}
+		}
+	}
+	,self_destruct: function() {
+		Luxe.audio.play(this.hit_sound.source);
+		this.set_visible(false);
+		this.used = true;
+		var _this = this.get_pos();
+		var prev = _this.ignore_listeners;
+		_this.ignore_listeners = true;
+		_this.x = 10000000;
+		if(!_this._construct) {
+			if(_this.listen_x != null && !_this.ignore_listeners) {
+				_this.listen_x(10000000);
+			}
+		}
+		_this.y = 10000000;
+		if(!_this._construct) {
+			if(_this.listen_y != null && !_this.ignore_listeners) {
+				_this.listen_y(10000000);
+			}
+		}
+		_this.ignore_listeners = prev;
+		if(_this.listen_x != null && !_this.ignore_listeners) {
+			_this.listen_x(_this.x);
+		}
+		if(_this.listen_y != null && !_this.ignore_listeners) {
+			_this.listen_y(_this.y);
 		}
 	}
 	,init: function() {
@@ -3848,18 +3893,17 @@ entities_Bullet.prototype = $extend(luxe_Sprite.prototype,{
 	}
 	,__class__: entities_Bullet
 });
-var entities_Enemy = function(t) {
+var entities_Enemy = function(t,position) {
 	this.type = t;
 	var image = new phoenix_Texture({ id : "TEMPORARY"});
 	var enemy_color = new phoenix_Color().rgb(16777215);
 	var enemy_size = new phoenix_Vector(64,64);
 	var _g = this.type;
 	if(_g == "red_led") {
-		image = Luxe.resources.cache.get("assets/images/player_animation.png");
-		enemy_color.rgb(16720655);
+		image = Luxe.resources.cache.get("assets/images/red_led_enemy.png");
 	}
 	image.set_filter_min(image.set_filter_mag(9728));
-	luxe_Sprite.call(this,{ name : "Enemy", texture : image, pos : new phoenix_Vector(100,100), size : enemy_size, color : enemy_color, depth : 10});
+	luxe_Sprite.call(this,{ name : "Enemy." + Std.string(C.unique_id()), texture : image, pos : position, size : enemy_size, color : enemy_color, depth : 10});
 	var _component = new components_Movement();
 	this.component_count++;
 	this.movement = this._components.add(_component);
@@ -4051,6 +4095,7 @@ entities_Enemy.prototype = $extend(luxe_Sprite.prototype,{
 var entities_Gun = function() {
 	var image = Luxe.resources.cache.get("assets/images/gun.png");
 	image.set_filter_min(image.set_filter_mag(9728));
+	this.shoot_sound = Luxe.resources.cache.get("assets/sounds/shoot.wav");
 	luxe_Sprite.call(this,{ name : "Gun", texture : image, pos : new phoenix_Vector(100,100), size : new phoenix_Vector(64,64), depth : 9});
 };
 $hxClasses["entities.Gun"] = entities_Gun;
@@ -4332,6 +4377,7 @@ entities_Gun.prototype = $extend(luxe_Sprite.prototype,{
 		}
 	}
 	,spawn_bullet: function() {
+		Luxe.audio.play(this.shoot_sound.source);
 		var _this = this.get_pos();
 		var _this1 = new phoenix_Vector(_this.x,_this.y,_this.z,_this.w);
 		var other = this.player.get_pos();
@@ -4473,6 +4519,7 @@ entities_Gun.prototype = $extend(luxe_Sprite.prototype,{
 		if(_this2.listen_z != null && !_this2.ignore_listeners) {
 			_this2.listen_z(_this2.z);
 		}
+		this.player.events.fire("damage",{ amount : 2});
 		var _this3 = this.get_pos();
 		new entities_Bullet(new phoenix_Vector(_this3.x,_this3.y,_this3.z,_this3.w),direction);
 	}
@@ -4513,7 +4560,6 @@ entities_Player.prototype = $extend(luxe_Sprite.prototype,{
 		this.events.listen("die",$bind(this,this.die));
 	}
 	,update: function(dt) {
-		this.energy.value -= 1;
 	}
 	,die: function(e) {
 	}
@@ -4580,7 +4626,7 @@ entities_World.prototype = $extend(luxe_Entity.prototype,{
 	,update: function(dt) {
 	}
 	,create_tilemap: function() {
-		var tilemap_opts = { tile_width : 16, tile_height : 16, w : 20, h : 20, orientation : luxe_tilemaps_TilemapOrientation.ortho};
+		var tilemap_opts = { tile_width : 16, tile_height : 16, w : 40, h : 40, orientation : luxe_tilemaps_TilemapOrientation.ortho};
 		this.map = new luxe_tilemaps_Tilemap(tilemap_opts);
 		var image = Luxe.resources.cache.get("assets/images/dungeon.png");
 		image.set_filter_min(image.set_filter_mag(9728));
@@ -4591,11 +4637,11 @@ entities_World.prototype = $extend(luxe_Entity.prototype,{
 	,generate_world: function() {
 		this.map.add_tiles_fill_by_id("world",3);
 		var _g = 0;
-		while(_g < 10) {
+		while(_g < 30) {
 			var i = _g++;
 			var _this = Luxe.utils.random;
-			var min = 2;
-			var max = 5;
+			var min = 3;
+			var max = 9;
 			if(max == null) {
 				max = min;
 				min = 0;
@@ -4608,8 +4654,8 @@ entities_World.prototype = $extend(luxe_Entity.prototype,{
 			}
 			var width = Math.floor(((_this.seed = _this.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max1 - min1) + min1);
 			var _this1 = Luxe.utils.random;
-			var min2 = 2;
-			var max2 = 5;
+			var min2 = 3;
+			var max2 = 9;
 			if(max2 == null) {
 				max2 = min2;
 				min2 = 0;
@@ -4758,198 +4804,382 @@ entities_World.prototype = $extend(luxe_Entity.prototype,{
 				}
 			}
 		}
-		var _g5 = new haxe_ds_StringMap();
+		var _g5 = 0;
+		while(_g5 < 13) {
+			var i1 = _g5++;
+			var _this4 = Luxe.utils.random;
+			var min8 = 2;
+			var max8 = 5;
+			if(max8 == null) {
+				max8 = min8;
+				min8 = 0;
+			}
+			var min9 = min8;
+			var max9 = max8;
+			if(max9 == null) {
+				max9 = min9;
+				min9 = 0;
+			}
+			var width1 = Math.floor(((_this4.seed = _this4.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max9 - min9) + min9);
+			var _this5 = Luxe.utils.random;
+			var min10 = 2;
+			var max10 = 5;
+			if(max10 == null) {
+				max10 = min10;
+				min10 = 0;
+			}
+			var min11 = min10;
+			var max11 = max10;
+			if(max11 == null) {
+				max11 = min11;
+				min11 = 0;
+			}
+			var height1 = Math.floor(((_this5.seed = _this5.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max11 - min11) + min11);
+			var position_z;
+			var position_y;
+			var position_x;
+			var position_w;
+			var position_listen_z;
+			var position_listen_y;
+			var position_listen_x;
+			var position_ignore_listeners;
+			var position__construct;
+			var _this6 = Luxe.utils.random;
+			var min12 = 0;
+			var max12 = this.map.width - width1;
+			if(max12 == null) {
+				max12 = min12;
+				min12 = 0;
+			}
+			var min13 = min12;
+			var max13 = max12;
+			if(max13 == null) {
+				max13 = min13;
+				min13 = 0;
+			}
+			var _x1 = Math.floor(((_this6.seed = _this6.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max13 - min13) + min13);
+			var _this7 = Luxe.utils.random;
+			var min14 = 0;
+			var max14 = this.map.height - height1;
+			if(max14 == null) {
+				max14 = min14;
+				min14 = 0;
+			}
+			var min15 = min14;
+			var max15 = max14;
+			if(max15 == null) {
+				max15 = min15;
+				min15 = 0;
+			}
+			var _y1 = Math.floor(((_this7.seed = _this7.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max15 - min15) + min15);
+			position_x = 0;
+			position_y = 0;
+			position_z = 0;
+			position_w = 0;
+			position_ignore_listeners = false;
+			position__construct = false;
+			position__construct = true;
+			position_x = _x1;
+			if(!position__construct) {
+				if(position_listen_x != null && !position_ignore_listeners) {
+					position_listen_x(_x1);
+				}
+			}
+			position_y = _y1;
+			if(!position__construct) {
+				if(position_listen_y != null && !position_ignore_listeners) {
+					position_listen_y(_y1);
+				}
+			}
+			position_z = 0;
+			if(!position__construct) {
+				if(position_listen_z != null && !position_ignore_listeners) {
+					position_listen_z(0);
+				}
+			}
+			position_w = 0;
+			position__construct = false;
+			var _g21 = 0;
+			var _g11 = width1;
+			while(_g21 < _g11) {
+				var x_offset1 = _g21++;
+				var _g41 = 0;
+				var _g31 = height1;
+				while(_g41 < _g31) {
+					var y_offset1 = _g41++;
+					this.map.tile_at("world",position_x + x_offset1 | 0,position_y + y_offset1 | 0).set_id(1);
+				}
+			}
+		}
+		var _g6 = new haxe_ds_StringMap();
 		if(__map_reserved["0,0,0,0"] != null) {
-			_g5.setReserved("0,0,0,0",1);
+			_g6.setReserved("0,0,0,0",1);
 		} else {
-			_g5.h["0,0,0,0"] = 1;
+			_g6.h["0,0,0,0"] = 1;
 		}
 		if(__map_reserved["1,0,0,0"] != null) {
-			_g5.setReserved("1,0,0,0",1);
+			_g6.setReserved("1,0,0,0",1);
 		} else {
-			_g5.h["1,0,0,0"] = 1;
+			_g6.h["1,0,0,0"] = 1;
 		}
 		if(__map_reserved["0,1,0,0"] != null) {
-			_g5.setReserved("0,1,0,0",1);
+			_g6.setReserved("0,1,0,0",1);
 		} else {
-			_g5.h["0,1,0,0"] = 1;
+			_g6.h["0,1,0,0"] = 1;
 		}
 		if(__map_reserved["0,0,1,0"] != null) {
-			_g5.setReserved("0,0,1,0",1);
+			_g6.setReserved("0,0,1,0",1);
 		} else {
-			_g5.h["0,0,1,0"] = 1;
+			_g6.h["0,0,1,0"] = 1;
 		}
 		if(__map_reserved["0,0,0,1"] != null) {
-			_g5.setReserved("0,0,0,1",1);
+			_g6.setReserved("0,0,0,1",1);
 		} else {
-			_g5.h["0,0,0,1"] = 1;
+			_g6.h["0,0,0,1"] = 1;
 		}
 		if(__map_reserved["1,1,0,0"] != null) {
-			_g5.setReserved("1,1,0,0",11);
+			_g6.setReserved("1,1,0,0",11);
 		} else {
-			_g5.h["1,1,0,0"] = 11;
+			_g6.h["1,1,0,0"] = 11;
 		}
 		if(__map_reserved["1,0,1,0"] != null) {
-			_g5.setReserved("1,0,1,0",1);
+			_g6.setReserved("1,0,1,0",1);
 		} else {
-			_g5.h["1,0,1,0"] = 1;
+			_g6.h["1,0,1,0"] = 1;
 		}
 		if(__map_reserved["1,0,0,1"] != null) {
-			_g5.setReserved("1,0,0,1",10);
+			_g6.setReserved("1,0,0,1",10);
 		} else {
-			_g5.h["1,0,0,1"] = 10;
+			_g6.h["1,0,0,1"] = 10;
 		}
 		if(__map_reserved["0,1,1,0"] != null) {
-			_g5.setReserved("0,1,1,0",17);
+			_g6.setReserved("0,1,1,0",17);
 		} else {
-			_g5.h["0,1,1,0"] = 17;
+			_g6.h["0,1,1,0"] = 17;
 		}
 		if(__map_reserved["0,1,0,1"] != null) {
-			_g5.setReserved("0,1,0,1",1);
+			_g6.setReserved("0,1,0,1",1);
 		} else {
-			_g5.h["0,1,0,1"] = 1;
+			_g6.h["0,1,0,1"] = 1;
 		}
 		if(__map_reserved["0,0,1,1"] != null) {
-			_g5.setReserved("0,0,1,1",18);
+			_g6.setReserved("0,0,1,1",18);
 		} else {
-			_g5.h["0,0,1,1"] = 18;
+			_g6.h["0,0,1,1"] = 18;
 		}
 		if(__map_reserved["1,1,1,0"] != null) {
-			_g5.setReserved("1,1,1,0",9);
+			_g6.setReserved("1,1,1,0",9);
 		} else {
-			_g5.h["1,1,1,0"] = 9;
+			_g6.h["1,1,1,0"] = 9;
 		}
 		if(__map_reserved["1,1,0,1"] != null) {
-			_g5.setReserved("1,1,0,1",8);
+			_g6.setReserved("1,1,0,1",8);
 		} else {
-			_g5.h["1,1,0,1"] = 8;
+			_g6.h["1,1,0,1"] = 8;
 		}
 		if(__map_reserved["1,0,1,1"] != null) {
-			_g5.setReserved("1,0,1,1",6);
+			_g6.setReserved("1,0,1,1",6);
 		} else {
-			_g5.h["1,0,1,1"] = 6;
+			_g6.h["1,0,1,1"] = 6;
 		}
 		if(__map_reserved["0,1,1,1"] != null) {
-			_g5.setReserved("0,1,1,1",5);
+			_g6.setReserved("0,1,1,1",5);
 		} else {
-			_g5.h["0,1,1,1"] = 5;
+			_g6.h["0,1,1,1"] = 5;
 		}
 		if(__map_reserved["1,1,1,1"] != null) {
-			_g5.setReserved("1,1,1,1",-1);
+			_g6.setReserved("1,1,1,1",-1);
 		} else {
-			_g5.h["1,1,1,1"] = -1;
+			_g6.h["1,1,1,1"] = -1;
 		}
-		var terrain_adjacent = _g5;
-		var _g11 = new haxe_ds_StringMap();
+		var terrain_adjacent = _g6;
+		var _g12 = new haxe_ds_StringMap();
 		if(__map_reserved["0,0,0,0"] != null) {
-			_g11.setReserved("0,0,0,0",1);
+			_g12.setReserved("0,0,0,0",1);
 		} else {
-			_g11.h["0,0,0,0"] = 1;
+			_g12.h["0,0,0,0"] = 1;
 		}
 		if(__map_reserved["1,0,0,0"] != null) {
-			_g11.setReserved("1,0,0,0",1);
+			_g12.setReserved("1,0,0,0",1);
 		} else {
-			_g11.h["1,0,0,0"] = 1;
+			_g12.h["1,0,0,0"] = 1;
 		}
 		if(__map_reserved["0,1,0,0"] != null) {
-			_g11.setReserved("0,1,0,0",1);
+			_g12.setReserved("0,1,0,0",1);
 		} else {
-			_g11.h["0,1,0,0"] = 1;
+			_g12.h["0,1,0,0"] = 1;
 		}
 		if(__map_reserved["0,0,1,0"] != null) {
-			_g11.setReserved("0,0,1,0",1);
+			_g12.setReserved("0,0,1,0",1);
 		} else {
-			_g11.h["0,0,1,0"] = 1;
+			_g12.h["0,0,1,0"] = 1;
 		}
 		if(__map_reserved["0,0,0,1"] != null) {
-			_g11.setReserved("0,0,0,1",1);
+			_g12.setReserved("0,0,0,1",1);
 		} else {
-			_g11.h["0,0,0,1"] = 1;
+			_g12.h["0,0,0,1"] = 1;
 		}
 		if(__map_reserved["1,1,0,0"] != null) {
-			_g11.setReserved("1,1,0,0",1);
+			_g12.setReserved("1,1,0,0",1);
 		} else {
-			_g11.h["1,1,0,0"] = 1;
+			_g12.h["1,1,0,0"] = 1;
 		}
 		if(__map_reserved["1,0,1,0"] != null) {
-			_g11.setReserved("1,0,1,0",1);
+			_g12.setReserved("1,0,1,0",1);
 		} else {
-			_g11.h["1,0,1,0"] = 1;
+			_g12.h["1,0,1,0"] = 1;
 		}
 		if(__map_reserved["1,0,0,1"] != null) {
-			_g11.setReserved("1,0,0,1",1);
+			_g12.setReserved("1,0,0,1",1);
 		} else {
-			_g11.h["1,0,0,1"] = 1;
+			_g12.h["1,0,0,1"] = 1;
 		}
 		if(__map_reserved["0,1,1,0"] != null) {
-			_g11.setReserved("0,1,1,0",1);
+			_g12.setReserved("0,1,1,0",1);
 		} else {
-			_g11.h["0,1,1,0"] = 1;
+			_g12.h["0,1,1,0"] = 1;
 		}
 		if(__map_reserved["0,1,0,1"] != null) {
-			_g11.setReserved("0,1,0,1",1);
+			_g12.setReserved("0,1,0,1",1);
 		} else {
-			_g11.h["0,1,0,1"] = 1;
+			_g12.h["0,1,0,1"] = 1;
 		}
 		if(__map_reserved["0,0,1,1"] != null) {
-			_g11.setReserved("0,0,1,1",1);
+			_g12.setReserved("0,0,1,1",1);
 		} else {
-			_g11.h["0,0,1,1"] = 1;
+			_g12.h["0,0,1,1"] = 1;
 		}
 		if(__map_reserved["1,1,1,0"] != null) {
-			_g11.setReserved("1,1,1,0",21);
+			_g12.setReserved("1,1,1,0",21);
 		} else {
-			_g11.h["1,1,1,0"] = 21;
+			_g12.h["1,1,1,0"] = 21;
 		}
 		if(__map_reserved["1,1,0,1"] != null) {
-			_g11.setReserved("1,1,0,1",19);
+			_g12.setReserved("1,1,0,1",19);
 		} else {
-			_g11.h["1,1,0,1"] = 19;
+			_g12.h["1,1,0,1"] = 19;
 		}
 		if(__map_reserved["1,0,1,1"] != null) {
-			_g11.setReserved("1,0,1,1",15);
+			_g12.setReserved("1,0,1,1",15);
 		} else {
-			_g11.h["1,0,1,1"] = 15;
+			_g12.h["1,0,1,1"] = 15;
 		}
 		if(__map_reserved["0,1,1,1"] != null) {
-			_g11.setReserved("0,1,1,1",16);
+			_g12.setReserved("0,1,1,1",16);
 		} else {
-			_g11.h["0,1,1,1"] = 16;
+			_g12.h["0,1,1,1"] = 16;
 		}
 		if(__map_reserved["1,1,1,1"] != null) {
-			_g11.setReserved("1,1,1,1",3);
+			_g12.setReserved("1,1,1,1",3);
 		} else {
-			_g11.h["1,1,1,1"] = 3;
+			_g12.h["1,1,1,1"] = 3;
 		}
-		var terrain_diagonal = _g11;
-		var _g31 = 0;
-		var _g21 = this.map.width;
-		while(_g31 < _g21) {
-			var x = _g31++;
+		var terrain_diagonal = _g12;
+		var floor_tile_array = [];
+		var _g32 = 0;
+		var _g22 = this.map.width;
+		while(_g32 < _g22) {
+			var x = _g32++;
 			var _g51 = 0;
-			var _g41 = this.map.height;
-			while(_g51 < _g41) {
+			var _g42 = this.map.height;
+			while(_g51 < _g42) {
 				var y = _g51++;
 				var surrounding_tiles = this.get_surrounding_tiles(x,y);
-				var i1 = [0];
-				var adjacent_key = surrounding_tiles.filter((function(i2) {
+				var i2 = [0];
+				var adjacent_key = surrounding_tiles.filter((function(i3) {
 					return function(tile) {
-						return i2[0]++ % 2 == 0;
+						return i3[0]++ % 2 == 0;
 					};
-				})(i1)).map($bind(this,this.is_dungeon_tile)).join(",");
-				var i3 = [1];
-				var diagonal_key = surrounding_tiles.filter((function(i4) {
+				})(i2)).map($bind(this,this.is_dungeon_tile)).join(",");
+				var i4 = [1];
+				var diagonal_key = surrounding_tiles.filter((function(i5) {
 					return function(tile1) {
-						return i4[0]++ % 2 == 0;
+						return i5[0]++ % 2 == 0;
 					};
-				})(i3)).map($bind(this,this.is_dungeon_tile)).join(",");
-				haxe_Log.trace(adjacent_key,{ fileName : "World.hx", lineNumber : 156, className : "entities.World", methodName : "generate_world"});
+				})(i4)).map($bind(this,this.is_dungeon_tile)).join(",");
+				haxe_Log.trace(adjacent_key,{ fileName : "World.hx", lineNumber : 176, className : "entities.World", methodName : "generate_world"});
 				if((__map_reserved[adjacent_key] != null ? terrain_adjacent.getReserved(adjacent_key) : terrain_adjacent.h[adjacent_key]) != -1) {
 					this.map.tile_at("world",x,y).set_id(__map_reserved[adjacent_key] != null ? terrain_adjacent.getReserved(adjacent_key) : terrain_adjacent.h[adjacent_key]);
 				} else {
-					this.map.tile_at("world",x,y).set_id(__map_reserved[diagonal_key] != null ? terrain_diagonal.getReserved(diagonal_key) : terrain_diagonal.h[diagonal_key]);
+					var new_tile_id = __map_reserved[diagonal_key] != null ? terrain_diagonal.getReserved(diagonal_key) : terrain_diagonal.h[diagonal_key];
+					var tile2 = this.map.tile_at("world",x,y);
+					tile2.set_id(new_tile_id);
+					if(C.floor_tiles.indexOf(new_tile_id) != -1) {
+						floor_tile_array.push(tile2);
+					}
 				}
 			}
+		}
+		var _g23 = 0;
+		while(_g23 < 10) {
+			var i6 = _g23++;
+			var _this8 = Luxe.utils.random;
+			var min16 = 0;
+			var max16 = floor_tile_array.length;
+			if(max16 == null) {
+				max16 = min16;
+				min16 = 0;
+			}
+			var min17 = min16;
+			var max17 = max16;
+			if(max17 == null) {
+				max17 = min17;
+				min17 = 0;
+			}
+			var tile3 = floor_tile_array[Math.floor(((_this8.seed = _this8.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max17 - min17) + min17)];
+			new entities_Enemy("red_led",this.map.tile_pos(tile3.x,tile3.y,4));
+		}
+		var _this9 = Luxe.utils.random;
+		var min18 = 0;
+		var max18 = floor_tile_array.length;
+		if(max18 == null) {
+			max18 = min18;
+			min18 = 0;
+		}
+		var min19 = min18;
+		var max19 = max18;
+		if(max19 == null) {
+			max19 = min19;
+			min19 = 0;
+		}
+		var starting_tile = floor_tile_array[Math.floor(((_this9.seed = _this9.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max19 - min19) + min19)];
+		var _this10 = Luxe.scene.entities;
+		var _this11 = (__map_reserved["Player"] != null ? _this10.getReserved("Player") : _this10.h["Player"]).get_pos();
+		var _other = this.map.tile_pos(starting_tile.x,starting_tile.y,4);
+		var _x2 = _other.x;
+		var _y2 = _other.y;
+		var _z = _other.z;
+		var _w = _other.w;
+		var prev4 = _this11.ignore_listeners;
+		_this11.ignore_listeners = true;
+		_this11.x = _x2;
+		if(!_this11._construct) {
+			if(_this11.listen_x != null && !_this11.ignore_listeners) {
+				_this11.listen_x(_x2);
+			}
+		}
+		_this11.y = _y2;
+		if(!_this11._construct) {
+			if(_this11.listen_y != null && !_this11.ignore_listeners) {
+				_this11.listen_y(_y2);
+			}
+		}
+		_this11.z = _z;
+		if(!_this11._construct) {
+			if(_this11.listen_z != null && !_this11.ignore_listeners) {
+				_this11.listen_z(_z);
+			}
+		}
+		_this11.w = _w;
+		_this11.ignore_listeners = prev4;
+		if(_this11.listen_x != null && !_this11.ignore_listeners) {
+			_this11.listen_x(_this11.x);
+		}
+		if(_this11.listen_y != null && !_this11.ignore_listeners) {
+			_this11.listen_y(_this11.y);
+		}
+		if(_this11.listen_z != null && !_this11.ignore_listeners) {
+			_this11.listen_z(_this11.z);
 		}
 	}
 	,get_surrounding_tiles: function(x,y) {
@@ -49066,6 +49296,7 @@ var Float32Array = $global.Float32Array || js_html_compat_Float32Array._new;
 var Uint8Array = $global.Uint8Array || js_html_compat_Uint8Array._new;
 C.floor_tiles = [3];
 C.enemies_alive = [];
+C.increment = 0;
 haxe_Serializer.USE_CACHE = false;
 haxe_Serializer.USE_ENUM_INDEX = false;
 haxe_Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
