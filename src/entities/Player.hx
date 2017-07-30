@@ -4,7 +4,9 @@ import luxe.Sprite;
 
 import components.Movement;
 import components.PlayerController;
+import components.PlayerAnimation;
 import components.MovementParticles;
+import components.Glow;
 
 import luxe.Color;
 import luxe.Vector;
@@ -23,16 +25,22 @@ class Player extends Sprite {
 			name: 'Player',
 			texture: image,
 			pos: Luxe.screen.mid,
-			size: new Vector(64, 64)
+			size: new Vector(64, 64),
+
+			depth: 10
 		});
 
 		// attach player controller
 		add(new Movement()); // handles movement
 		add(new PlayerController()); // handles input
+		add(new PlayerAnimation());
 
 		// attach movement particles component
-		add(new MovementParticles());
+		// add(new MovementParticles());
 
+		// add glow effect
+		// add(new Glow(0x6abe30));
+		var glow = add(new Glow(0xc0ffa0, 512));
 	}
 
 	override function init(){

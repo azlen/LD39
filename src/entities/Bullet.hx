@@ -3,6 +3,7 @@ package entities;
 import luxe.Sprite;
 
 import components.Movement;
+import components.Glow;
 
 import luxe.Vector;
 import phoenix.Texture;
@@ -17,8 +18,12 @@ class Bullet extends Sprite {
 		super({
 			pos: position,
 			texture: image,
-			size: new Vector(64, 64)
+			size: new Vector(64, 64),
+
+			depth: 9
 		});
+
+		// add movement component
 
 		var movement_component = add(new Movement());
 
@@ -30,6 +35,10 @@ class Bullet extends Sprite {
 		if(rotation_z > 90 || rotation_z < -90) {
 			flipx = true;
 		}
+
+		// add glow
+
+		add(new Glow(0xffffff, 64));
 
 	}
 

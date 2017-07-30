@@ -12,8 +12,6 @@ class Gun extends Sprite {
 
 	var player : Sprite;
 
-	var mouse_pos : Vector = new Vector(0, 0);
-
 	override public function new() {
 
 		var image = Luxe.resources.texture('assets/images/gun.png');
@@ -24,6 +22,8 @@ class Gun extends Sprite {
 			texture: image,
 			pos: new Vector(100, 100),
 			size: new Vector(64, 64),
+
+			depth: 9
 		});
 
 	}
@@ -34,17 +34,13 @@ class Gun extends Sprite {
 
 	}
 
-	override function onmousemove(event:MouseEvent) {
-	    mouse_pos = event.pos;
-	}
-
 	override function onmousedown(event:MouseEvent) {
 		spawn_bullet();
 	}
 
 	override function update(dt:Float) {
-		var offset = mouse_pos.clone().subtract(player.pos);
-		offset.length = 50;
+		var offset = Luxe.screen.cursor.pos.clone().add(Luxe.camera.pos).subtract(player.pos);
+		offset.length = 42;
 		pos.copy_from(player.pos).add(offset);
 
 		radians = offset.angle2D;
@@ -53,6 +49,12 @@ class Gun extends Sprite {
 			flipy = true;
 		} else {
 			flipy = false;
+		}
+
+		if(rotation_z > 0) {
+			depth = 11;
+		} else {
+			depth = 9;
 		}
 	}
 
