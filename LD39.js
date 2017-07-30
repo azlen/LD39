@@ -401,27 +401,27 @@ Main.__name__ = ["Main"];
 Main.__super__ = luxe_Game;
 Main.prototype = $extend(luxe_Game.prototype,{
 	ready: function() {
+		this.preload_assets();
+	}
+	,assets_loaded: function(_) {
+		this.init_states();
 		this.music = Luxe.resources.cache.get("assets/music/music.wav");
 		Luxe.audio.loop(this.music.source);
 		Luxe.renderer.clear_color = new phoenix_Color().rgb(0);
-		this.create_glow_batcher();
-		this.create_darkness();
-		this.create_HUD();
-		this.player = new entities_Player();
-		C.world = new entities_World();
-		new entities_Gun();
 		this.connect_input();
+	}
+	,init_states: function() {
+		C.state = new luxe_States({ name : "StateMachine"});
+		C.state.add(new states_Menu());
+		C.state.add(new states_Game());
+		C.state.add(new states_Lose());
+		C.state.add(new states_Win());
+		C.state.set("Menu");
 	}
 	,onkeyup: function(e) {
 		if(e.keycode == 27) {
 			Luxe.core.shutdown();
 		}
-	}
-	,update: function(dt) {
-		Luxe.camera.set_center(new phoenix_Vector(Math.round(this.player.get_pos().x),Math.round(this.player.get_pos().y)));
-		this.glow_batcher_fill.set_pos(Luxe.camera.get_center());
-		this.darkness_over.set_pos(Luxe.camera.get_center());
-		this.darkness_under.set_pos(Luxe.camera.get_center());
 	}
 	,connect_input: function() {
 		Luxe.input.bind_key("up",119);
@@ -429,42 +429,12 @@ Main.prototype = $extend(luxe_Game.prototype,{
 		Luxe.input.bind_key("down",115);
 		Luxe.input.bind_key("right",100);
 	}
-	,create_glow_batcher: function() {
-		C.glow_batcher = Luxe.renderer.create_batcher({ name : "Glow", layer : 2, camera : Luxe.camera.view});
-		C.glow_batcher.emitter.on(1,$bind(this,this.set_glow_blendmodes));
-		C.glow_batcher.emitter.on(2,$bind(this,this.unset_glow_blendmodes));
-		this.glow_batcher_fill = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color().set(0,0,0,1), batcher : C.glow_batcher});
-	}
-	,create_darkness: function() {
-		this.darkness_under = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color().set(0,0,0,0.1), depth : 2});
-		this.darkness_over = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color().set(0,0,0,0.2), depth : 20});
-	}
-	,create_HUD: function() {
-		C.HUD = Luxe.renderer.create_batcher({ name : "HUD", layer : 3});
-		new entities_PlayerEnergyBar();
-	}
-	,set_glow_blendmodes: function(b) {
-		Luxe.renderer.blend_mode(774,772);
-		Luxe.renderer.blend_equation(32774);
-	}
-	,unset_glow_blendmodes: function(b) {
-		Luxe.renderer.blend_mode();
-		Luxe.renderer.blend_equation();
+	,preload_assets: function() {
+		var parcel = new luxe_Parcel({ textures : [{ id : "assets/images/player_animation.png"},{ id : "assets/images/red_led_enemy.png"},{ id : "assets/images/dungeon.png"},{ id : "assets/images/gun.png"},{ id : "assets/images/bullet.png"},{ id : "assets/images/glow.png"},{ id : "assets/images/glow_alpha.png"},{ id : "assets/images/battery.png"},{ id : "assets/images/battery_powerup.png"},{ id : "assets/images/title_screen.png"},{ id : "assets/images/press_any_key.png"}], jsons : [{ id : "assets/animations/player_animation.json"}], sounds : [{ id : "assets/sounds/hurt.wav", is_stream : false},{ id : "assets/sounds/pickup.wav", is_stream : false},{ id : "assets/sounds/shoot.wav", is_stream : false},{ id : "assets/music/music.wav", is_stream : false}]});
+		new luxe_ParcelProgress({ parcel : parcel, background : new phoenix_Color(0,0,0,0.85), oncomplete : $bind(this,this.assets_loaded)});
+		parcel.load();
 	}
 	,config: function(config) {
-		config.preload.textures.push({ id : "assets/images/player_animation.png"});
-		config.preload.textures.push({ id : "assets/images/red_led_enemy.png"});
-		config.preload.jsons.push({ id : "assets/animations/player_animation.json"});
-		config.preload.textures.push({ id : "assets/images/dungeon.png"});
-		config.preload.textures.push({ id : "assets/images/gun.png"});
-		config.preload.textures.push({ id : "assets/images/bullet.png"});
-		config.preload.textures.push({ id : "assets/images/glow.png"});
-		config.preload.textures.push({ id : "assets/images/glow_alpha.png"});
-		config.preload.textures.push({ id : "assets/images/battery.png"});
-		config.preload.sounds.push({ id : "assets/sounds/hurt.wav", is_stream : false});
-		config.preload.sounds.push({ id : "assets/sounds/pickup.wav", is_stream : false});
-		config.preload.sounds.push({ id : "assets/sounds/shoot.wav", is_stream : false});
-		config.preload.sounds.push({ id : "assets/music/music.wav", is_stream : false});
 		return config;
 	}
 	,__class__: Main
@@ -1069,14 +1039,21 @@ components_Energy.__name__ = ["components","Energy"];
 components_Energy.__super__ = luxe_Component;
 components_Energy.prototype = $extend(luxe_Component.prototype,{
 	init: function() {
-		this.get_entity().events.listen("damage",$bind(this,this.hurt));
+		this.get_entity().events.listen("damage",$bind(this,this.damage));
+		this.get_entity().events.listen("heal",$bind(this,this.heal));
 	}
 	,update: function(dt) {
 	}
-	,hurt: function(e) {
+	,damage: function(e) {
 		this.value -= e.amount;
 		if(this.value <= 0) {
 			this.get_entity().events.fire("die");
+		}
+	}
+	,heal: function(e) {
+		this.value += e.amount;
+		if(this.value > this.max_value) {
+			this.value = this.max_value;
 		}
 	}
 	,ondestroy: function() {
@@ -3848,7 +3825,7 @@ entities_Bullet.prototype = $extend(luxe_Sprite.prototype,{
 			while(_g1 < _g) {
 				var i = _g1++;
 				var enemy = C.enemies_alive[i];
-				if(enemy == null) {
+				if(enemy == null || this.get_pos() == null) {
 					continue;
 				}
 				if(this.get_pos().x > enemy.get_pos().x - enemy.size.x / 2 && this.get_pos().x < enemy.get_pos().x + enemy.size.x / 2 && this.get_pos().y > enemy.get_pos().y - enemy.size.y / 2 && this.get_pos().y < enemy.get_pos().y + enemy.size.y / 2) {
@@ -4084,11 +4061,10 @@ entities_Enemy.prototype = $extend(luxe_Sprite.prototype,{
 		}
 	}
 	,die: function(e) {
-		HxOverrides.remove(C.enemies_alive,this);
 		this.destroy();
 	}
 	,ondestroy: function() {
-		luxe_Sprite.prototype.ondestroy.call(this);
+		HxOverrides.remove(C.enemies_alive,this);
 	}
 	,__class__: entities_Enemy
 });
@@ -4542,7 +4518,7 @@ var entities_Player = function() {
 	var _component2 = new components_PlayerAnimation();
 	this.component_count++;
 	this._components.add(_component2);
-	var _component3 = new components_Energy(100);
+	var _component3 = new components_Energy(25);
 	this.component_count++;
 	this.energy = this._components.add(_component3);
 	var _component4 = new components_Glow(12648352,512);
@@ -4562,6 +4538,7 @@ entities_Player.prototype = $extend(luxe_Sprite.prototype,{
 	,update: function(dt) {
 	}
 	,die: function(e) {
+		C.state.set("Lose");
 	}
 	,ondestroy: function() {
 		luxe_Sprite.prototype.ondestroy.call(this);
@@ -4609,6 +4586,64 @@ entities_PlayerEnergyBar.prototype = $extend(luxe_Sprite.prototype,{
 		luxe_Sprite.prototype.ondestroy.call(this);
 	}
 	,__class__: entities_PlayerEnergyBar
+});
+var entities_Powerup = function(position) {
+	this.used = false;
+	var image = Luxe.resources.cache.get("assets/images/battery_powerup.png");
+	image.set_filter_min(image.set_filter_mag(9728));
+	this.pickup_sound = Luxe.resources.cache.get("assets/sounds/pickup.wav");
+	luxe_Sprite.call(this,{ name : "Powerup" + Std.string(C.unique_id()), texture : image, pos : position, size : new phoenix_Vector(64,64), depth : 9});
+	var _component = new components_Glow(12648352,128);
+	this.component_count++;
+	this._components.add(_component);
+};
+$hxClasses["entities.Powerup"] = entities_Powerup;
+entities_Powerup.__name__ = ["entities","Powerup"];
+entities_Powerup.__super__ = luxe_Sprite;
+entities_Powerup.prototype = $extend(luxe_Sprite.prototype,{
+	init: function() {
+		var _this = Luxe.scene.entities;
+		this.player = __map_reserved["Player"] != null ? _this.getReserved("Player") : _this.h["Player"];
+	}
+	,update: function(dt) {
+		if(!this.used) {
+			if(this.get_pos().x > this.player.get_pos().x - this.player.size.x / 2 && this.get_pos().x < this.player.get_pos().x + this.player.size.x / 2 && this.get_pos().y > this.player.get_pos().y - this.player.size.y / 2 && this.get_pos().y < this.player.get_pos().y + this.player.size.y / 2) {
+				this.player.events.fire("heal",{ amount : 5});
+				Luxe.audio.play(this.pickup_sound.source);
+				this.self_destruct();
+			}
+		}
+	}
+	,self_destruct: function() {
+		this.set_visible(false);
+		this.used = true;
+		var _this = this.get_pos();
+		var prev = _this.ignore_listeners;
+		_this.ignore_listeners = true;
+		_this.x = 1010100;
+		if(!_this._construct) {
+			if(_this.listen_x != null && !_this.ignore_listeners) {
+				_this.listen_x(1010100);
+			}
+		}
+		_this.y = 10101000;
+		if(!_this._construct) {
+			if(_this.listen_y != null && !_this.ignore_listeners) {
+				_this.listen_y(10101000);
+			}
+		}
+		_this.ignore_listeners = prev;
+		if(_this.listen_x != null && !_this.ignore_listeners) {
+			_this.listen_x(_this.x);
+		}
+		if(_this.listen_y != null && !_this.ignore_listeners) {
+			_this.listen_y(_this.y);
+		}
+	}
+	,ondestroy: function() {
+		luxe_Sprite.prototype.ondestroy.call(this);
+	}
+	,__class__: entities_Powerup
 });
 var entities_World = function() {
 	this.floor_tiles = [3];
@@ -5129,57 +5164,76 @@ entities_World.prototype = $extend(luxe_Entity.prototype,{
 			var tile3 = floor_tile_array[Math.floor(((_this8.seed = _this8.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max17 - min17) + min17)];
 			new entities_Enemy("red_led",this.map.tile_pos(tile3.x,tile3.y,4));
 		}
-		var _this9 = Luxe.utils.random;
-		var min18 = 0;
-		var max18 = floor_tile_array.length;
-		if(max18 == null) {
-			max18 = min18;
-			min18 = 0;
+		var _g24 = 0;
+		while(_g24 < 20) {
+			var i7 = _g24++;
+			var _this9 = Luxe.utils.random;
+			var min18 = 0;
+			var max18 = floor_tile_array.length;
+			if(max18 == null) {
+				max18 = min18;
+				min18 = 0;
+			}
+			var min19 = min18;
+			var max19 = max18;
+			if(max19 == null) {
+				max19 = min19;
+				min19 = 0;
+			}
+			var tile4 = floor_tile_array[Math.floor(((_this9.seed = _this9.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max19 - min19) + min19)];
+			new entities_Powerup(this.map.tile_pos(tile4.x,tile4.y,4));
 		}
-		var min19 = min18;
-		var max19 = max18;
-		if(max19 == null) {
-			max19 = min19;
-			min19 = 0;
+		var _this10 = Luxe.utils.random;
+		var min20 = 0;
+		var max20 = floor_tile_array.length;
+		if(max20 == null) {
+			max20 = min20;
+			min20 = 0;
 		}
-		var starting_tile = floor_tile_array[Math.floor(((_this9.seed = _this9.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max19 - min19) + min19)];
-		var _this10 = Luxe.scene.entities;
-		var _this11 = (__map_reserved["Player"] != null ? _this10.getReserved("Player") : _this10.h["Player"]).get_pos();
+		var min21 = min20;
+		var max21 = max20;
+		if(max21 == null) {
+			max21 = min21;
+			min21 = 0;
+		}
+		var starting_tile = floor_tile_array[Math.floor(((_this10.seed = _this10.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max21 - min21) + min21)];
+		var _this11 = Luxe.scene.entities;
+		var _this12 = (__map_reserved["Player"] != null ? _this11.getReserved("Player") : _this11.h["Player"]).get_pos();
 		var _other = this.map.tile_pos(starting_tile.x,starting_tile.y,4);
 		var _x2 = _other.x;
 		var _y2 = _other.y;
 		var _z = _other.z;
 		var _w = _other.w;
-		var prev4 = _this11.ignore_listeners;
-		_this11.ignore_listeners = true;
-		_this11.x = _x2;
-		if(!_this11._construct) {
-			if(_this11.listen_x != null && !_this11.ignore_listeners) {
-				_this11.listen_x(_x2);
+		var prev4 = _this12.ignore_listeners;
+		_this12.ignore_listeners = true;
+		_this12.x = _x2;
+		if(!_this12._construct) {
+			if(_this12.listen_x != null && !_this12.ignore_listeners) {
+				_this12.listen_x(_x2);
 			}
 		}
-		_this11.y = _y2;
-		if(!_this11._construct) {
-			if(_this11.listen_y != null && !_this11.ignore_listeners) {
-				_this11.listen_y(_y2);
+		_this12.y = _y2;
+		if(!_this12._construct) {
+			if(_this12.listen_y != null && !_this12.ignore_listeners) {
+				_this12.listen_y(_y2);
 			}
 		}
-		_this11.z = _z;
-		if(!_this11._construct) {
-			if(_this11.listen_z != null && !_this11.ignore_listeners) {
-				_this11.listen_z(_z);
+		_this12.z = _z;
+		if(!_this12._construct) {
+			if(_this12.listen_z != null && !_this12.ignore_listeners) {
+				_this12.listen_z(_z);
 			}
 		}
-		_this11.w = _w;
-		_this11.ignore_listeners = prev4;
-		if(_this11.listen_x != null && !_this11.ignore_listeners) {
-			_this11.listen_x(_this11.x);
+		_this12.w = _w;
+		_this12.ignore_listeners = prev4;
+		if(_this12.listen_x != null && !_this12.ignore_listeners) {
+			_this12.listen_x(_this12.x);
 		}
-		if(_this11.listen_y != null && !_this11.ignore_listeners) {
-			_this11.listen_y(_this11.y);
+		if(_this12.listen_y != null && !_this12.ignore_listeners) {
+			_this12.listen_y(_this12.y);
 		}
-		if(_this11.listen_z != null && !_this11.ignore_listeners) {
-			_this11.listen_z(_this11.z);
+		if(_this12.listen_z != null && !_this12.ignore_listeners) {
+			_this12.listen_z(_this12.z);
 		}
 	}
 	,get_surrounding_tiles: function(x,y) {
@@ -11184,6 +11238,124 @@ luxe_Parcel.prototype = {
 	,__class__: luxe_Parcel
 	,__properties__: {get_length:"get_length",get_listed:"get_listed"}
 };
+var luxe_ParcelProgress = function(_options) {
+	this.fade_alpha = 0;
+	this.height = 0;
+	this.width = 0;
+	var _view_width = Luxe.core.screen.get_w();
+	var _view_height = Luxe.core.screen.get_h();
+	if(Luxe.camera.get_size() != null) {
+		_view_width = Luxe.camera.get_size().x;
+		_view_height = Luxe.camera.get_size().y;
+	}
+	var _view_mid_x = Math.floor(_view_width / 2);
+	var _view_mid_y = Math.floor(_view_height / 2);
+	this.width = Math.max(Math.floor(_view_width * 0.75),2);
+	this.height = Math.max(Math.floor(_view_height * 0.002),2);
+	this.options = _options;
+	if(this.options.no_visuals == null) {
+		this.options.no_visuals = false;
+	}
+	if(this.options.bar == null) {
+		this.options.bar = new phoenix_Color().rgb(3421236);
+	}
+	if(this.options.bar_border == null) {
+		this.options.bar_border = new phoenix_Color().rgb(1447446);
+	}
+	if(this.options.background == null) {
+		this.options.background = new phoenix_Color().rgb(592137);
+	}
+	if(this.options.fade_in == null) {
+		this.options.fade_in = true;
+	}
+	if(this.options.fade_out == null) {
+		this.options.fade_out = true;
+	}
+	if(this.options.fade_time == null) {
+		this.options.fade_time = 0.3;
+	}
+	this.fade_alpha = this.options.background.a;
+	if(!this.options.no_visuals) {
+		if(this.options.fade_in) {
+			this.options.background.a = 0;
+			this.options.bar.a = 0;
+			this.options.bar_border.a = 0;
+		}
+		var _ypos = Math.floor(_view_height * 0.60);
+		var _half_width = Math.floor(this.width / 2);
+		var _half_height = Math.floor(this.height / 2);
+		this.background = new luxe_Sprite({ no_scene : true, size : new phoenix_Vector(_view_width,_view_height), centered : false, color : this.options.background, depth : 998, visible : true});
+		this.progress_bar = new luxe_Sprite({ pos : new phoenix_Vector(_view_mid_x - _half_width,_ypos - _half_height), size : new phoenix_Vector(2,this.height), no_scene : true, centered : false, color : this.options.bar, depth : 998});
+		this.progress_border = new luxe_Visual({ color : this.options.bar, no_scene : true, pos : new phoenix_Vector(_view_mid_x - _half_width,_ypos - _half_height), geometry : Luxe.draw.rectangle({ w : this.width, h : this.height, depth : 998.1}), depth : 998.1});
+		if(this.options.fade_in) {
+			this.background.color.tween(this.options.fade_time,{ a : this.fade_alpha},true);
+			this.progress_bar.color.tween(this.options.fade_time,{ a : 1},true);
+			this.progress_border.color.tween(this.options.fade_time,{ a : 1},true);
+		}
+	}
+	this.options.parcel.emitter.on(1,$bind(this,this.onbegin));
+	this.options.parcel.emitter.on(3,$bind(this,this.onprogress));
+	this.options.parcel.emitter.on(4,$bind(this,this.oncomplete));
+};
+$hxClasses["luxe.ParcelProgress"] = luxe_ParcelProgress;
+luxe_ParcelProgress.__name__ = ["luxe","ParcelProgress"];
+luxe_ParcelProgress.prototype = {
+	set_progress: function(amount) {
+		if(amount < 0) {
+			amount = 0;
+		}
+		if(amount > 1) {
+			amount = 1;
+		}
+		if(!this.options.no_visuals) {
+			var _this = this.progress_bar.size;
+			var _x = Math.ceil(this.width * amount);
+			_this.x = _x;
+			if(!_this._construct) {
+				if(_this.listen_x != null && !_this.ignore_listeners) {
+					_this.listen_x(_x);
+				}
+			}
+		}
+	}
+	,onbegin: function(_parcel) {
+		this.set_progress(0);
+		if(!this.options.no_visuals) {
+			if(this.options.fade_in) {
+				this.options.background.a = 0;
+				this.options.bar.a = 0;
+				this.options.bar_border.a = 0;
+				this.background.color.tween(this.options.fade_time,{ a : this.fade_alpha},true);
+				this.progress_bar.color.tween(this.options.fade_time,{ a : 1},true);
+				this.progress_border.color.tween(this.options.fade_time,{ a : 1},true);
+			} else {
+				this.options.background.a = 1;
+				this.options.bar.a = 1;
+				this.options.bar_border.a = 1;
+			}
+		}
+	}
+	,onprogress: function(_state) {
+		var _amount = _state.index / _state.total;
+		this.set_progress(_amount);
+	}
+	,oncomplete: function(_parcel) {
+		if(!this.options.no_visuals && this.options.fade_out) {
+			this.do_complete();
+			this.background.color.tween(this.options.fade_time,{ a : 0},true);
+			this.progress_bar.color.tween(this.options.fade_time,{ a : 0},true);
+			this.progress_border.color.tween(this.options.fade_time,{ a : 0},true);
+		} else {
+			this.do_complete();
+		}
+	}
+	,do_complete: function() {
+		if(this.options.oncomplete != null) {
+			this.options.oncomplete(this.options.parcel);
+		}
+	}
+	,__class__: luxe_ParcelProgress
+};
 var luxe_ParticleSystem = function(_options) {
 	this.enabled = true;
 	this.paused = false;
@@ -13088,6 +13260,609 @@ luxe_Cursor.prototype = {
 	,__class__: luxe_Cursor
 	,__properties__: {get_pos:"get_pos",set_grab:"set_grab",get_grab:"get_grab"}
 };
+var luxe_State = function(_options) {
+	this.inited = false;
+	this.enabled = false;
+	this.active = false;
+	luxe_ID.call(this,_options.name);
+};
+$hxClasses["luxe.State"] = luxe_State;
+luxe_State.__name__ = ["luxe","State"];
+luxe_State.__super__ = luxe_ID;
+luxe_State.prototype = $extend(luxe_ID.prototype,{
+	enable: function(_enable_with) {
+		this.machine.enable(this.name,_enable_with);
+	}
+	,disable: function(_disable_with) {
+		this.machine.disable(this.name,_disable_with);
+	}
+	,destroy: function() {
+		this.machine.kill(this.name);
+	}
+	,init: function() {
+	}
+	,update: function(dt) {
+	}
+	,onfixedupdate: function() {
+	}
+	,onleave: function(d) {
+	}
+	,onenter: function(d) {
+	}
+	,onenabled: function(d) {
+	}
+	,ondisabled: function(d) {
+	}
+	,onadded: function() {
+	}
+	,onremoved: function() {
+	}
+	,onrender: function() {
+	}
+	,onprerender: function() {
+	}
+	,onpostrender: function() {
+	}
+	,onreset: function() {
+	}
+	,ondestroy: function() {
+	}
+	,onkeyup: function(event) {
+	}
+	,onkeydown: function(event) {
+	}
+	,ontextinput: function(event) {
+	}
+	,oninputdown: function(event) {
+	}
+	,oninputup: function(event) {
+	}
+	,onmousedown: function(event) {
+	}
+	,onmouseup: function(event) {
+	}
+	,onmousemove: function(event) {
+	}
+	,onmousewheel: function(event) {
+	}
+	,ontouchdown: function(event) {
+	}
+	,ontouchup: function(event) {
+	}
+	,ontouchmove: function(event) {
+	}
+	,ongamepadup: function(event) {
+	}
+	,ongamepaddown: function(event) {
+	}
+	,ongamepadaxis: function(event) {
+	}
+	,ongamepaddevice: function(event) {
+	}
+	,onwindowmoved: function(event) {
+	}
+	,onwindowresized: function(event) {
+	}
+	,onwindowsized: function(event) {
+	}
+	,onwindowminimized: function(event) {
+	}
+	,onwindowrestored: function(event) {
+	}
+	,_init: function() {
+		if(!this.inited) {
+			this.inited = true;
+			this.init();
+		}
+	}
+	,__class__: luxe_State
+});
+var luxe_States = function(_options) {
+	this._state_count = 0;
+	this.active_count = 0;
+	var _name = "";
+	if(_options != null && _options.name != null) {
+		_name = _options.name;
+	}
+	luxe_Objects.call(this,_name == "" ? Luxe.utils.uniqueid() : _name);
+	this._states = new haxe_ds_StringMap();
+	this.active_states = [];
+	Luxe.core.emitter.on(2,$bind(this,this.init));
+	Luxe.core.emitter.on(8,$bind(this,this.ondestroy));
+	Luxe.core.emitter.on(6,$bind(this,this.update));
+	Luxe.core.emitter.on(9,$bind(this,this.prerender));
+	Luxe.core.emitter.on(11,$bind(this,this.postrender));
+	Luxe.core.emitter.on(10,$bind(this,this.render));
+	Luxe.core.emitter.on(12,$bind(this,this.keydown));
+	Luxe.core.emitter.on(13,$bind(this,this.keyup));
+	Luxe.core.emitter.on(14,$bind(this,this.textinput));
+	Luxe.core.emitter.on(16,$bind(this,this.inputup));
+	Luxe.core.emitter.on(15,$bind(this,this.inputdown));
+	Luxe.core.emitter.on(18,$bind(this,this.mouseup));
+	Luxe.core.emitter.on(17,$bind(this,this.mousedown));
+	Luxe.core.emitter.on(19,$bind(this,this.mousemove));
+	Luxe.core.emitter.on(20,$bind(this,this.mousewheel));
+	Luxe.core.emitter.on(22,$bind(this,this.touchup));
+	Luxe.core.emitter.on(21,$bind(this,this.touchdown));
+	Luxe.core.emitter.on(23,$bind(this,this.touchmove));
+	Luxe.core.emitter.on(26,$bind(this,this.gamepadup));
+	Luxe.core.emitter.on(25,$bind(this,this.gamepaddown));
+	Luxe.core.emitter.on(24,$bind(this,this.gamepadaxis));
+	Luxe.core.emitter.on(27,$bind(this,this.gamepaddevice));
+	Luxe.core.emitter.on(29,$bind(this,this.windowmoved));
+	Luxe.core.emitter.on(30,$bind(this,this.windowresized));
+	Luxe.core.emitter.on(31,$bind(this,this.windowsized));
+	Luxe.core.emitter.on(32,$bind(this,this.windowminimized));
+	Luxe.core.emitter.on(33,$bind(this,this.windowrestored));
+};
+$hxClasses["luxe.States"] = luxe_States;
+luxe_States.__name__ = ["luxe","States"];
+luxe_States.__super__ = luxe_Objects;
+luxe_States.prototype = $extend(luxe_Objects.prototype,{
+	add: function(_state) {
+		var key = _state.name;
+		var _this = this._states;
+		if(__map_reserved[key] != null) {
+			_this.setReserved(key,_state);
+		} else {
+			_this.h[key] = _state;
+		}
+		this._state_count++;
+		_state.machine = this;
+		_state.onadded();
+		if(Luxe.core.inited) {
+			if(!_state.inited) {
+				_state.inited = true;
+				_state.init();
+			}
+		}
+		return _state;
+	}
+	,remove: function(_name,_leave_with) {
+		var _this = this._states;
+		if(__map_reserved[_name] != null ? _this.existsReserved(_name) : _this.h.hasOwnProperty(_name)) {
+			var _this1 = this._states;
+			var _state = __map_reserved[_name] != null ? _this1.getReserved(_name) : _this1.h[_name];
+			if(_state != null) {
+				if(_state.active) {
+					this.leave(_state,_leave_with);
+					if(_state == this.current_state) {
+						this.current_state = null;
+					}
+				}
+				if(_state.enabled) {
+					this.disable(_state.name);
+				}
+				_state.onremoved();
+				this._states.remove(_name);
+				this._state_count--;
+			}
+			return _state;
+		}
+		return null;
+	}
+	,kill: function(_name) {
+		if(this._state_count > 0) {
+			var _this = this._states;
+			if(__map_reserved[_name] != null ? _this.existsReserved(_name) : _this.h.hasOwnProperty(_name)) {
+				var _state = this.remove(_name);
+				if(_state != null) {
+					_state.ondestroy();
+				}
+			}
+		}
+	}
+	,enabled: function(_name) {
+		if(this._state_count == 0) {
+			return false;
+		}
+		var _this = this._states;
+		var _state = __map_reserved[_name] != null ? _this.getReserved(_name) : _this.h[_name];
+		if(_state != null) {
+			return _state.enabled;
+		}
+		return false;
+	}
+	,enable: function(_name,_enable_with) {
+		if(this._state_count == 0) {
+			return;
+		}
+		var _this = this._states;
+		var _state = __map_reserved[_name] != null ? _this.getReserved(_name) : _this.h[_name];
+		if(_state != null) {
+			_state.onenabled(_enable_with);
+			_state.active = true;
+			_state.enabled = true;
+			this.active_states.push(_state);
+			this.active_count++;
+		}
+	}
+	,disable: function(_name,_disable_with) {
+		if(this._state_count == 0) {
+			return;
+		}
+		var _this = this._states;
+		var _state = __map_reserved[_name] != null ? _this.getReserved(_name) : _this.h[_name];
+		if(_state != null) {
+			_state.ondisabled(_disable_with);
+			_state.active = false;
+			_state.enabled = false;
+			HxOverrides.remove(this.active_states,_state);
+			this.active_count--;
+		}
+	}
+	,enter: function(_state,_enter_with) {
+		_state.onenter(_enter_with);
+		this.active_states.push(_state);
+		this.active_count++;
+		_state.active = true;
+	}
+	,leave: function(_state,_leave_with) {
+		_state.active = false;
+		HxOverrides.remove(this.active_states,_state);
+		this.active_count--;
+		_state.onleave(_leave_with);
+	}
+	,set: function(name,_enter_with,_leave_with) {
+		var _this = this._states;
+		if(!(__map_reserved[name] != null ? _this.existsReserved(name) : _this.h.hasOwnProperty(name))) {
+			haxe_Log.trace("   i / states / " + ("cannot find state named " + name + ", is it added to this state machine?"),{ fileName : "States.hx", lineNumber : 318, className : "luxe.States", methodName : "set"});
+			return false;
+		}
+		this.unset(_leave_with);
+		var _this1 = this._states;
+		this.current_state = __map_reserved[name] != null ? _this1.getReserved(name) : _this1.h[name];
+		this.enter(this.current_state,_enter_with);
+		return true;
+	}
+	,unset: function(_leave_with) {
+		if(this.current_state != null) {
+			this.leave(this.current_state,_leave_with);
+			this.current_state = null;
+		}
+	}
+	,destroy: function() {
+		if(this._state_count > 0) {
+			var _this = this._states;
+			var state = new haxe_ds__$StringMap_StringMapIterator(_this,_this.arrayKeys());
+			while(state.hasNext()) {
+				var state1 = state.next();
+				state1.destroy();
+			}
+		}
+		Luxe.core.emitter.off(2,$bind(this,this.init));
+		Luxe.core.emitter.off(8,$bind(this,this.ondestroy));
+		Luxe.core.emitter.off(6,$bind(this,this.update));
+		Luxe.core.emitter.off(9,$bind(this,this.prerender));
+		Luxe.core.emitter.off(11,$bind(this,this.postrender));
+		Luxe.core.emitter.off(10,$bind(this,this.render));
+		Luxe.core.emitter.off(12,$bind(this,this.keydown));
+		Luxe.core.emitter.off(13,$bind(this,this.keyup));
+		Luxe.core.emitter.off(14,$bind(this,this.textinput));
+		Luxe.core.emitter.off(16,$bind(this,this.inputup));
+		Luxe.core.emitter.off(15,$bind(this,this.inputdown));
+		Luxe.core.emitter.off(18,$bind(this,this.mouseup));
+		Luxe.core.emitter.off(17,$bind(this,this.mousedown));
+		Luxe.core.emitter.off(19,$bind(this,this.mousemove));
+		Luxe.core.emitter.off(20,$bind(this,this.mousewheel));
+		Luxe.core.emitter.off(22,$bind(this,this.touchup));
+		Luxe.core.emitter.off(21,$bind(this,this.touchdown));
+		Luxe.core.emitter.off(23,$bind(this,this.touchmove));
+		Luxe.core.emitter.off(26,$bind(this,this.gamepadup));
+		Luxe.core.emitter.off(25,$bind(this,this.gamepaddown));
+		Luxe.core.emitter.off(24,$bind(this,this.gamepadaxis));
+		Luxe.core.emitter.off(27,$bind(this,this.gamepaddevice));
+		Luxe.core.emitter.off(29,$bind(this,this.windowmoved));
+		Luxe.core.emitter.off(30,$bind(this,this.windowresized));
+		Luxe.core.emitter.off(31,$bind(this,this.windowsized));
+		Luxe.core.emitter.off(32,$bind(this,this.windowminimized));
+		Luxe.core.emitter.off(33,$bind(this,this.windowrestored));
+		this.emit(8);
+	}
+	,init: function(_) {
+		if(this._state_count > 0) {
+			var _this = this._states;
+			var state = new haxe_ds__$StringMap_StringMapIterator(_this,_this.arrayKeys());
+			while(state.hasNext()) {
+				var state1 = state.next();
+				if(!state1.inited) {
+					state1.inited = true;
+					state1.init();
+				}
+			}
+		}
+	}
+	,reset: function(_) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onreset();
+			}
+		}
+	}
+	,update: function(dt) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.update(dt);
+			}
+		}
+	}
+	,ondestroy: function(_) {
+		this.destroy();
+	}
+	,render: function(_) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onrender();
+			}
+		}
+	}
+	,prerender: function(_) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onprerender();
+			}
+		}
+	}
+	,postrender: function(_) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onpostrender();
+			}
+		}
+	}
+	,keydown: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onkeydown(_event);
+			}
+		}
+	}
+	,keyup: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onkeyup(_event);
+			}
+		}
+	}
+	,textinput: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.ontextinput(_event);
+			}
+		}
+	}
+	,inputup: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.oninputup(_event);
+			}
+		}
+	}
+	,inputdown: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.oninputdown(_event);
+			}
+		}
+	}
+	,mousedown: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onmousedown(_event);
+			}
+		}
+	}
+	,mousewheel: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onmousewheel(_event);
+			}
+		}
+	}
+	,mouseup: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onmouseup(_event);
+			}
+		}
+	}
+	,mousemove: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onmousemove(_event);
+			}
+		}
+	}
+	,touchdown: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.ontouchdown(_event);
+			}
+		}
+	}
+	,touchup: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.ontouchup(_event);
+			}
+		}
+	}
+	,touchmove: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.ontouchmove(_event);
+			}
+		}
+	}
+	,gamepadaxis: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.ongamepadaxis(_event);
+			}
+		}
+	}
+	,gamepadup: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.ongamepadup(_event);
+			}
+		}
+	}
+	,gamepaddown: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.ongamepaddown(_event);
+			}
+		}
+	}
+	,gamepaddevice: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.ongamepaddevice(_event);
+			}
+		}
+	}
+	,windowmoved: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onwindowmoved(_event);
+			}
+		}
+	}
+	,windowresized: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onwindowresized(_event);
+			}
+		}
+	}
+	,windowsized: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onwindowsized(_event);
+			}
+		}
+	}
+	,windowminimized: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onwindowminimized(_event);
+			}
+		}
+	}
+	,windowrestored: function(_event) {
+		if(this.active_count > 0) {
+			var _g = 0;
+			var _g1 = this.active_states;
+			while(_g < _g1.length) {
+				var state = _g1[_g];
+				++_g;
+				state.onwindowrestored(_event);
+			}
+		}
+	}
+	,__class__: luxe_States
+});
 var luxe_Text = function(_options) {
 	this.text_options = _options;
 	this.text_bounds = new phoenix_Rectangle();
@@ -49268,6 +50043,116 @@ snow_types__$Types_InputEventType_$Impl_$.toString = function(this1) {
 		return "" + this1;
 	}
 };
+var states_Game = function() {
+	luxe_State.call(this,{ name : "Game"});
+};
+$hxClasses["states.Game"] = states_Game;
+states_Game.__name__ = ["states","Game"];
+states_Game.__super__ = luxe_State;
+states_Game.prototype = $extend(luxe_State.prototype,{
+	onenter: function(_) {
+		this.create_glow_batcher();
+		this.create_darkness();
+		this.create_HUD();
+		this.player = new entities_Player();
+		C.world = new entities_World();
+		new entities_Gun();
+	}
+	,onleave: function(_) {
+		Luxe.scene.empty();
+	}
+	,update: function(dt) {
+		Luxe.camera.set_center(new phoenix_Vector(Math.round(this.player.get_pos().x),Math.round(this.player.get_pos().y)));
+		this.glow_batcher_fill.set_pos(Luxe.camera.get_center());
+		this.darkness_over.set_pos(Luxe.camera.get_center());
+		this.darkness_under.set_pos(Luxe.camera.get_center());
+	}
+	,create_glow_batcher: function() {
+		C.glow_batcher = Luxe.renderer.create_batcher({ name : "Glow", layer : 2, camera : Luxe.camera.view});
+		C.glow_batcher.emitter.on(1,$bind(this,this.set_glow_blendmodes));
+		C.glow_batcher.emitter.on(2,$bind(this,this.unset_glow_blendmodes));
+		this.glow_batcher_fill = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color().set(0,0,0,1), batcher : C.glow_batcher});
+	}
+	,create_darkness: function() {
+		this.darkness_under = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color().set(0,0,0,0.1), depth : 2});
+		this.darkness_over = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color().set(0,0,0,0.2), depth : 20});
+	}
+	,create_HUD: function() {
+		C.HUD = Luxe.renderer.create_batcher({ name : "HUD", layer : 3});
+		new entities_PlayerEnergyBar();
+	}
+	,set_glow_blendmodes: function(b) {
+		Luxe.renderer.blend_mode(774,772);
+		Luxe.renderer.blend_equation(32774);
+	}
+	,unset_glow_blendmodes: function(b) {
+		Luxe.renderer.blend_mode();
+		Luxe.renderer.blend_equation();
+	}
+	,__class__: states_Game
+});
+var states_Lose = function() {
+	luxe_State.call(this,{ name : "Lose"});
+};
+$hxClasses["states.Lose"] = states_Lose;
+states_Lose.__name__ = ["states","Lose"];
+states_Lose.__super__ = luxe_State;
+states_Lose.prototype = $extend(luxe_State.prototype,{
+	onenter: function(_) {
+	}
+	,onleave: function(_) {
+	}
+	,update: function(dt) {
+	}
+	,__class__: states_Lose
+});
+var states_Menu = function() {
+	luxe_State.call(this,{ name : "Menu"});
+};
+$hxClasses["states.Menu"] = states_Menu;
+states_Menu.__name__ = ["states","Menu"];
+states_Menu.__super__ = luxe_State;
+states_Menu.prototype = $extend(luxe_State.prototype,{
+	onenter: function(_) {
+		var title_screen_image = Luxe.resources.cache.get("assets/images/title_screen.png");
+		title_screen_image.set_filter_min(title_screen_image.set_filter_mag(9728));
+		this.title_screen = new luxe_Sprite({ pos : Luxe.core.screen.get_mid(), size : new phoenix_Vector(640,640), texture : title_screen_image, depth : 1});
+		var press_any_key_image = Luxe.resources.cache.get("assets/images/press_any_key.png");
+		press_any_key_image.set_filter_min(press_any_key_image.set_filter_mag(9728));
+		this.press_any_key = new luxe_Sprite({ pos : Luxe.core.screen.get_mid(), size : new phoenix_Vector(640,640), texture : press_any_key_image, depth : 2});
+	}
+	,onleave: function(_) {
+		this.title_screen.destroy();
+		this.press_any_key.destroy();
+	}
+	,update: function(dt) {
+		this.dt_counter += dt;
+		if(this.dt_counter > 1) {
+			this.dt_counter = 0;
+			haxe_Log.trace(this.press_any_key.visible,{ fileName : "Menu.hx", lineNumber : 66, className : "states.Menu", methodName : "update"});
+			this.press_any_key.set_visible(!this.press_any_key.visible);
+		}
+	}
+	,onkeyup: function(e) {
+		C.state.set("Game");
+	}
+	,__class__: states_Menu
+});
+var states_Win = function() {
+	luxe_State.call(this,{ name : "Win"});
+};
+$hxClasses["states.Win"] = states_Win;
+states_Win.__name__ = ["states","Win"];
+states_Win.__super__ = luxe_State;
+states_Win.prototype = $extend(luxe_State.prototype,{
+	onenter: function(_) {
+	}
+	,onleave: function(_) {
+	}
+	,update: function(dt) {
+	}
+	,__class__: states_Win
+});
 function $iterator(o) { if( o instanceof Array ) return function() { return HxOverrides.iter(o); }; return typeof(o.iterator) == 'function' ? $bind(o,o.iterator) : o.iterator; }
 var $_, $fid = 0;
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $fid++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = function(){ return f.method.apply(f.scope, arguments); }; f.scope = o; f.method = m; o.hx__closures__[m.__id__] = f; } return f; }
