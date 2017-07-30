@@ -38,7 +38,7 @@ class Bullet extends Sprite {
 
 		// add glow
 
-		add(new Glow(0xffffff, 64));
+		add(new Glow(0xc0ffa0, 128));
 
 	}
 
