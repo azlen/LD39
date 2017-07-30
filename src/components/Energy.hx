@@ -20,7 +20,8 @@ class Energy extends Component {
 
 	override public function init() {
 
-		entity.events.listen('damage', hurt);
+		entity.events.listen('damage', damage);
+		entity.events.listen('heal', heal);
 
 	} // init
 
@@ -30,8 +31,8 @@ class Energy extends Component {
 
 	} // update
 
-	function hurt(e) {
-
+	function damage(e) {
+		
 		value -= e.amount;
 
 		if(value <= 0) {
@@ -39,5 +40,15 @@ class Energy extends Component {
 		}
 
 	} // hurt
+
+	function heal(e) {
+
+		value += e.amount;
+
+		if(value > max_value) {
+			value = max_value;
+		}
+
+	}
 
 }

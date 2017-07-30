@@ -3,8 +3,11 @@ package;
 import phoenix.Batcher;
 import entities.World;
 import entities.Enemy;
+import luxe.States;
 
 class C {
+
+	public static var state : States;
 
 	public static var glow_batcher : Batcher;
 	public static var HUD : Batcher;

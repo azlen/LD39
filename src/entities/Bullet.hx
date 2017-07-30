@@ -59,7 +59,7 @@ class Bullet extends Sprite {
 		if(!used) {
 			for(i in 0...C.enemies_alive.length) {
 				var enemy = C.enemies_alive[i];
-				if(enemy == null) { continue; }
+				if(enemy == null || pos == null) { continue; }
 				if(	pos.x > enemy.pos.x - enemy.size.x / 2 && 
 					pos.x < enemy.pos.x + enemy.size.x / 2 &&
 					pos.y > enemy.pos.y - enemy.size.y / 2 &&

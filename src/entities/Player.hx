@@ -38,7 +38,7 @@ class Player extends Sprite {
 		add(new Movement()); // handles movement
 		add(new PlayerController()); // handles input
 		add(new PlayerAnimation());
-		energy = add(new Energy(100));
+		energy = add(new Energy(25));
 
 		// attach movement particles component
 		// add(new MovementParticles());
@@ -62,7 +62,9 @@ class Player extends Sprite {
 	}//update
 
 	function die(e) {
-		// DO SOMETHING!!!
+
+		C.state.set('Lose');
+		
 	}
 
 }//Player
