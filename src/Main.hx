@@ -9,6 +9,8 @@ import entities.Gun;
 import entities.World;
 import entities.Enemy;
 
+import entities.PlayerEnergyBar;
+
 import phoenix.Batcher;
 
 import C;
@@ -35,8 +37,10 @@ class Main extends luxe.Game {
 		Luxe.renderer.clear_color = new Color().rgb(0x000000);
 
 		create_glow_batcher();
+		create_darkness();
+		create_HUD();
 
-		new World();
+		C.world = new World();
 
 		player = new Player();
 		new Gun();
@@ -48,20 +52,6 @@ class Main extends luxe.Game {
 		#if (!web)
 			init_gifcapture();
 		#end
-
-		darkness_under = new Sprite({
-			pos: Luxe.camera.center,
-			size: Luxe.screen.size,
-			color: new Color().set(0, 0, 0, 0.1),
-			depth: 2,
-		});
-
-		darkness_over = new Sprite({
-			pos: Luxe.camera.center,
-			size: Luxe.screen.size,
-			color: new Color().set(0, 0, 0, 0.2),
-			depth: 20,
-		});
 		
 	} // ready
 
@@ -125,6 +115,33 @@ class Main extends luxe.Game {
 
 	} // create_glow_batcher
 
+	function create_darkness() {
+		darkness_under = new Sprite({
+			pos: Luxe.camera.center,
+			size: Luxe.screen.size,
+			color: new Color().set(0, 0, 0, 0.1),
+			depth: 2,
+		});
+
+		darkness_over = new Sprite({
+			pos: Luxe.camera.center,
+			size: Luxe.screen.size,
+			color: new Color().set(0, 0, 0, 0.2),
+			depth: 20,
+		});
+	} // create_darkness
+
+	function create_HUD() {
+
+		C.HUD = Luxe.renderer.create_batcher({
+			name: 'HUD',
+			layer: 3
+		});
+
+		new PlayerEnergyBar();
+
+	} // create_HUD
+
 	function set_glow_blendmodes(b:Batcher) {
 
 		Luxe.renderer.blend_mode(
@@ -173,6 +190,7 @@ class Main extends luxe.Game {
 		config.preload.textures.push({ id: 'assets/images/bullet.png' });
 		config.preload.textures.push({ id: 'assets/images/glow.png' });
 		config.preload.textures.push({ id: 'assets/images/glow_alpha.png' });
+		config.preload.textures.push({ id: 'assets/images/battery.png' });
 
 		return config;
 

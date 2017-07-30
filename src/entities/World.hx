@@ -12,7 +12,9 @@ import phoenix.Texture;
 
 class World extends Entity {
 
-	var map : Tilemap;
+	public var map : Tilemap;
+
+	var floor_tiles = [3];
 
 	override public function new() {
 
@@ -185,6 +187,6 @@ class World extends Entity {
 
 	inline function is_dungeon_tile(tile) {
 		return (tile != null ? tile.id != 1 : false) ? 1 : 0;
-	} // is_floor_tile
+	} // is_dungeon_tile
 
 }

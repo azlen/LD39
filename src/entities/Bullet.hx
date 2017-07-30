@@ -7,6 +7,9 @@ import components.Glow;
 
 import luxe.Vector;
 import phoenix.Texture;
+import luxe.Entity;
+
+import C;
 
 class Bullet extends Sprite {
 
@@ -41,5 +44,28 @@ class Bullet extends Sprite {
 		add(new Glow(0xc0ffa0, 128));
 
 	}
+
+	override function update(dt:Float) {
+
+		// trace(enemies.length);
+
+		for(i in 0...C.enemies_alive.length) {
+			var enemy = C.enemies_alive[i];
+			if(	pos.x > enemy.pos.x - enemy.size.x / 2 && 
+				pos.x < enemy.pos.x + enemy.size.x / 2 &&
+				pos.y > enemy.pos.y - enemy.size.y / 2 &&
+				pos.y < enemy.pos.y + enemy.size.y / 2 ) {
+
+				enemy.events.fire('damage');
+				// trace(enemy.events);
+				// destroy();
+			}
+		}
+
+		/*if(!C.world.map.bounds.point_inside(pos)) {
+			destroy();
+		}*/
+
+	} // update
 
 }

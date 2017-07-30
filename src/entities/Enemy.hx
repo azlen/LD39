@@ -8,8 +8,12 @@ import luxe.Color;
 import components.Movement;
 import components.PlayerAnimation;
 import components.Glow;
+import components.Collision;
+import components.Energy;
 
 import phoenix.Texture;
+
+import C;
 
 class Enemy extends Sprite {
 
@@ -44,20 +48,30 @@ class Enemy extends Sprite {
 		});
 
 		movement = add(new Movement());
+		add(new Collision());
 
 		movement.max_move_speed = 150;
+
+		var hp = 1;
 
 		switch type {
 			case 'red_led':
 				add(new PlayerAnimation()); // HAHA
 				add(new Glow(0xffc0a0, 512));
+				hp = 4;
 		}
+
+		add(new Energy(hp));
+
+		C.enemies_alive.push(this);
 
 	} // new
 
 	override function init() {
 		
 		player = cast Luxe.scene.entities.get('Player');
+
+		events.listen('die', die);
 
 	} // init
 
@@ -72,5 +86,11 @@ class Enemy extends Sprite {
 		}
 
 	} // update
+
+	function die(e) {
+		C.enemies_alive.remove(this);
+
+		destroy();
+	}
 
 }

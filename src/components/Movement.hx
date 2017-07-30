@@ -30,6 +30,8 @@ class Movement extends Component {
 
 		sprite = cast entity;
 
+		sprite.events.listen('hurt', knockback);
+
 	} // init
 
 	override function update(dt:Float) {
@@ -41,6 +43,11 @@ class Movement extends Component {
 		}else if(direction.x < 0) {
 			sprite.flipx = true;
 		}
+
+		pos.x += velocity.x * dt;
+		pos.y += velocity.y * dt;
+
+
 
 		if(direction.length != 0) {
 			direction.length = 1;
@@ -65,9 +72,6 @@ class Movement extends Component {
 
 			is_moving = false;
 		}
-
-		pos.x += velocity.x * dt;
-		pos.y += velocity.y * dt;
 	} // update
 
 	function accelerate(dt:Float) {
@@ -89,5 +93,9 @@ class Movement extends Component {
 		velocity.y = Math.max(velocity.y - (max_move_speed / deceleration_time) * dt, 0);
 		// velocity.length = Math.max(velocity.length - (max_move_speed / deceleration_time) * dt, 0);
 	} // decelerate_y
+
+	function knockback(e) {
+		// DO SOMETHING!?!
+	}
 
 }

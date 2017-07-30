@@ -7,6 +7,8 @@ import components.PlayerController;
 import components.PlayerAnimation;
 import components.MovementParticles;
 import components.Glow;
+import components.Energy;
+import components.Collision;
 
 import luxe.Color;
 import luxe.Vector;
@@ -14,6 +16,8 @@ import luxe.Vector;
 import phoenix.Texture;
 
 class Player extends Sprite {
+
+	var energy : Energy;
 
 	override public function new(){
 
@@ -34,6 +38,7 @@ class Player extends Sprite {
 		add(new Movement()); // handles movement
 		add(new PlayerController()); // handles input
 		add(new PlayerAnimation());
+		energy = add(new Energy(100));
 
 		// attach movement particles component
 		// add(new MovementParticles());
@@ -41,17 +46,25 @@ class Player extends Sprite {
 		// add glow effect
 		// add(new Glow(0x6abe30));
 		var glow = add(new Glow(0xc0ffa0, 512));
+
+		// add collision
+		add(new Collision());
 	}
 
 	override function init(){
 		
-
+		events.listen('die', die);
 
 	}//init
 
 	override function update(dt:Float){
 
+		energy.value -= 1;
 
 	}//update
+
+	function die(e) {
+		// DO SOMETHING!!!
+	}
 
 }//Player
