@@ -400,13 +400,13 @@ Main.prototype = $extend(luxe_Game.prototype,{
 	ready: function() {
 		Luxe.renderer.clear_color = new phoenix_Color().rgb(0);
 		this.create_glow_batcher();
-		new entities_World();
+		this.create_darkness();
+		this.create_HUD();
+		C.world = new entities_World();
 		this.player = new entities_Player();
 		new entities_Gun();
 		new entities_Enemy("red_led");
 		this.connect_input();
-		this.darkness_under = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color().set(0,0,0,0.1), depth : 2});
-		this.darkness_over = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color().set(0,0,0,0.2), depth : 20});
 	}
 	,onkeyup: function(e) {
 		if(e.keycode == 27) {
@@ -431,6 +431,14 @@ Main.prototype = $extend(luxe_Game.prototype,{
 		C.glow_batcher.emitter.on(2,$bind(this,this.unset_glow_blendmodes));
 		this.glow_batcher_fill = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color().set(0,0,0,1), batcher : C.glow_batcher});
 	}
+	,create_darkness: function() {
+		this.darkness_under = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color().set(0,0,0,0.1), depth : 2});
+		this.darkness_over = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color().set(0,0,0,0.2), depth : 20});
+	}
+	,create_HUD: function() {
+		C.HUD = Luxe.renderer.create_batcher({ name : "HUD", layer : 3});
+		new entities_PlayerEnergyBar();
+	}
 	,set_glow_blendmodes: function(b) {
 		Luxe.renderer.blend_mode(774,772);
 		Luxe.renderer.blend_equation(32774);
@@ -447,6 +455,7 @@ Main.prototype = $extend(luxe_Game.prototype,{
 		config.preload.textures.push({ id : "assets/images/bullet.png"});
 		config.preload.textures.push({ id : "assets/images/glow.png"});
 		config.preload.textures.push({ id : "assets/images/glow_alpha.png"});
+		config.preload.textures.push({ id : "assets/images/battery.png"});
 		return config;
 	}
 	,__class__: Main
@@ -979,6 +988,96 @@ luxe_Component.prototype = $extend(luxe_ID.prototype,{
 	,__class__: luxe_Component
 	,__properties__: {set_origin:"set_origin",get_origin:"get_origin",set_scale:"set_scale",get_scale:"get_scale",set_rotation:"set_rotation",get_rotation:"get_rotation",set_pos:"set_pos",get_pos:"get_pos",set_entity:"set_entity",get_entity:"get_entity"}
 });
+var components_Collision = function() {
+	luxe_Component.call(this,{ name : "Collision"});
+};
+$hxClasses["components.Collision"] = components_Collision;
+components_Collision.__name__ = ["components","Collision"];
+components_Collision.__super__ = luxe_Component;
+components_Collision.prototype = $extend(luxe_Component.prototype,{
+	init: function() {
+		this.velocity = this.get_entity()._components.get("Movement",false).velocity;
+	}
+	,update: function(dt) {
+		if(this.check_collision(this.velocity.x * dt,0)) {
+			var _g = this.get_entity().get_pos();
+			var _x = _g.x - this.velocity.x * dt;
+			_g.x = _x;
+			if(!_g._construct) {
+				if(_g.listen_x != null && !_g.ignore_listeners) {
+					_g.listen_x(_x);
+				}
+			}
+			var _this = this.velocity;
+			_this.x = 0;
+			if(!_this._construct) {
+				if(_this.listen_x != null && !_this.ignore_listeners) {
+					_this.listen_x(0);
+				}
+			}
+		}
+		if(this.check_collision(0,this.velocity.y * dt)) {
+			var _g1 = this.get_entity().get_pos();
+			var _y = _g1.y - this.velocity.y * dt;
+			_g1.y = _y;
+			if(!_g1._construct) {
+				if(_g1.listen_y != null && !_g1.ignore_listeners) {
+					_g1.listen_y(_y);
+				}
+			}
+			var _this1 = this.velocity;
+			_this1.y = 0;
+			if(!_this1._construct) {
+				if(_this1.listen_y != null && !_this1.ignore_listeners) {
+					_this1.listen_y(0);
+				}
+			}
+		}
+	}
+	,check_collision: function(x_offset,y_offset) {
+		var tile = C.world.map.tile_at_pos("world",this.get_entity().get_pos().x + x_offset,this.get_entity().get_pos().y + y_offset,4);
+		if(tile == null || C.floor_tiles.indexOf(tile.id) == -1) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	,ondestroy: function() {
+		luxe_Component.prototype.ondestroy.call(this);
+	}
+	,onremoved: function() {
+		luxe_Component.prototype.onremoved.call(this);
+	}
+	,__class__: components_Collision
+});
+var components_Energy = function(v) {
+	luxe_Component.call(this,{ name : "Energy"});
+	this.value = v;
+	this.max_value = v;
+};
+$hxClasses["components.Energy"] = components_Energy;
+components_Energy.__name__ = ["components","Energy"];
+components_Energy.__super__ = luxe_Component;
+components_Energy.prototype = $extend(luxe_Component.prototype,{
+	init: function() {
+		this.get_entity().events.listen("damage",$bind(this,this.hurt));
+	}
+	,update: function(dt) {
+	}
+	,hurt: function(e) {
+		this.value -= 1;
+		if(this.value <= 0) {
+			this.get_entity().events.fire("die");
+		}
+	}
+	,ondestroy: function() {
+		luxe_Component.prototype.ondestroy.call(this);
+	}
+	,onremoved: function() {
+		luxe_Component.prototype.onremoved.call(this);
+	}
+	,__class__: components_Energy
+});
 var components_Glow = function(hex,d) {
 	this.diameter = 256;
 	luxe_Component.call(this,{ name : "Glow"});
@@ -1144,6 +1243,7 @@ components_Movement.__super__ = luxe_Component;
 components_Movement.prototype = $extend(luxe_Component.prototype,{
 	init: function() {
 		this.sprite = this.get_entity();
+		this.sprite.events.listen("hurt",$bind(this,this.knockback));
 	}
 	,update: function(dt) {
 		if(this.direction.x > 0) {
@@ -1151,26 +1251,42 @@ components_Movement.prototype = $extend(luxe_Component.prototype,{
 		} else if(this.direction.x < 0) {
 			this.sprite.set_flipx(true);
 		}
+		var _g = this.get_pos();
+		var _x = _g.x + this.velocity.x * dt;
+		_g.x = _x;
+		if(!_g._construct) {
+			if(_g.listen_x != null && !_g.ignore_listeners) {
+				_g.listen_x(_x);
+			}
+		}
+		var _g1 = this.get_pos();
+		var _y = _g1.y + this.velocity.y * dt;
+		_g1.y = _y;
+		if(!_g1._construct) {
+			if(_g1.listen_y != null && !_g1.ignore_listeners) {
+				_g1.listen_y(_y);
+			}
+		}
 		var _this = this.direction;
 		if(Math.sqrt(_this.x * _this.x + _this.y * _this.y + _this.z * _this.z) != 0) {
 			var _this1 = this.direction;
 			var v = Math.sqrt(_this1.x * _this1.x + _this1.y * _this1.y + _this1.z * _this1.z);
 			if(v != 0) {
-				var _x = _this1.x / v;
-				var _y = _this1.y / v;
+				var _x1 = _this1.x / v;
+				var _y1 = _this1.y / v;
 				var _z = _this1.z / v;
 				var prev = _this1.ignore_listeners;
 				_this1.ignore_listeners = true;
-				_this1.x = _x;
+				_this1.x = _x1;
 				if(!_this1._construct) {
 					if(_this1.listen_x != null && !_this1.ignore_listeners) {
-						_this1.listen_x(_x);
+						_this1.listen_x(_x1);
 					}
 				}
-				_this1.y = _y;
+				_this1.y = _y1;
 				if(!_this1._construct) {
 					if(_this1.listen_y != null && !_this1.ignore_listeners) {
-						_this1.listen_y(_y);
+						_this1.listen_y(_y1);
 					}
 				}
 				_this1.z = _z;
@@ -1222,21 +1338,21 @@ components_Movement.prototype = $extend(luxe_Component.prototype,{
 				}
 			}
 			var _this2 = _this1;
-			var _x1 = _this2.x;
-			var _y1 = _this2.y;
+			var _x2 = _this2.x;
+			var _y2 = _this2.y;
 			var _z1 = _this2.z;
 			var prev2 = _this2.ignore_listeners;
 			_this2.ignore_listeners = true;
-			_this2.x = _x1;
+			_this2.x = _x2;
 			if(!_this2._construct) {
 				if(_this2.listen_x != null && !_this2.ignore_listeners) {
-					_this2.listen_x(_x1);
+					_this2.listen_x(_x2);
 				}
 			}
-			_this2.y = _y1;
+			_this2.y = _y2;
 			if(!_this2._construct) {
 				if(_this2.listen_y != null && !_this2.ignore_listeners) {
-					_this2.listen_y(_y1);
+					_this2.listen_y(_y2);
 				}
 			}
 			_this2.z = _z1;
@@ -1273,22 +1389,6 @@ components_Movement.prototype = $extend(luxe_Component.prototype,{
 				this.sprite.events.fire("movement.stop");
 			}
 			this.is_moving = false;
-		}
-		var _g = this.get_pos();
-		var _x2 = _g.x + this.velocity.x * dt;
-		_g.x = _x2;
-		if(!_g._construct) {
-			if(_g.listen_x != null && !_g.ignore_listeners) {
-				_g.listen_x(_x2);
-			}
-		}
-		var _g1 = this.get_pos();
-		var _y2 = _g1.y + this.velocity.y * dt;
-		_g1.y = _y2;
-		if(!_g1._construct) {
-			if(_g1.listen_y != null && !_g1.ignore_listeners) {
-				_g1.listen_y(_y2);
-			}
 		}
 	}
 	,accelerate: function(dt) {
@@ -1434,6 +1534,8 @@ components_Movement.prototype = $extend(luxe_Component.prototype,{
 				_this.listen_y(_y);
 			}
 		}
+	}
+	,knockback: function(e) {
 	}
 	,ondestroy: function() {
 		luxe_Component.prototype.ondestroy.call(this);
@@ -3719,7 +3821,7 @@ var entities_Bullet = function(position,direction) {
 	if(this.get_rotation_z() > 90 || this.get_rotation_z() < -90) {
 		this.set_flipx(true);
 	}
-	var _component1 = new components_Glow(16777215,64);
+	var _component1 = new components_Glow(12648352,128);
 	this.component_count++;
 	this._components.add(_component1);
 };
@@ -3727,7 +3829,18 @@ $hxClasses["entities.Bullet"] = entities_Bullet;
 entities_Bullet.__name__ = ["entities","Bullet"];
 entities_Bullet.__super__ = luxe_Sprite;
 entities_Bullet.prototype = $extend(luxe_Sprite.prototype,{
-	init: function() {
+	update: function(dt) {
+		var _g1 = 0;
+		var _g = C.enemies_alive.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			var enemy = C.enemies_alive[i];
+			if(this.get_pos().x > enemy.get_pos().x - enemy.size.x / 2 && this.get_pos().x < enemy.get_pos().x + enemy.size.x / 2 && this.get_pos().y > enemy.get_pos().y - enemy.size.y / 2 && this.get_pos().y < enemy.get_pos().y + enemy.size.y / 2) {
+				enemy.events.fire("damage");
+			}
+		}
+	}
+	,init: function() {
 		luxe_Sprite.prototype.init.call(this);
 	}
 	,ondestroy: function() {
@@ -3750,16 +3863,25 @@ var entities_Enemy = function(t) {
 	var _component = new components_Movement();
 	this.component_count++;
 	this.movement = this._components.add(_component);
+	var _component1 = new components_Collision();
+	this.component_count++;
+	this._components.add(_component1);
 	this.movement.max_move_speed = 150;
+	var hp = 1;
 	var _g1 = this.type;
 	if(_g1 == "red_led") {
-		var _component1 = new components_PlayerAnimation();
-		this.component_count++;
-		this._components.add(_component1);
-		var _component2 = new components_Glow(16760992,512);
+		var _component2 = new components_PlayerAnimation();
 		this.component_count++;
 		this._components.add(_component2);
+		var _component3 = new components_Glow(16760992,512);
+		this.component_count++;
+		this._components.add(_component3);
+		hp = 4;
 	}
+	var _component4 = new components_Energy(hp);
+	this.component_count++;
+	this._components.add(_component4);
+	C.enemies_alive.push(this);
 };
 $hxClasses["entities.Enemy"] = entities_Enemy;
 entities_Enemy.__name__ = ["entities","Enemy"];
@@ -3768,6 +3890,7 @@ entities_Enemy.prototype = $extend(luxe_Sprite.prototype,{
 	init: function() {
 		var _this = Luxe.scene.entities;
 		this.player = __map_reserved["Player"] != null ? _this.getReserved("Player") : _this.h["Player"];
+		this.events.listen("die",$bind(this,this.die));
 	}
 	,update: function(dt) {
 		var _g = this.type;
@@ -3915,6 +4038,10 @@ entities_Enemy.prototype = $extend(luxe_Sprite.prototype,{
 			}
 			this.movement.direction = direction;
 		}
+	}
+	,die: function(e) {
+		HxOverrides.remove(C.enemies_alive,this);
+		this.destroy();
 	}
 	,ondestroy: function() {
 		luxe_Sprite.prototype.ondestroy.call(this);
@@ -4368,24 +4495,77 @@ var entities_Player = function() {
 	var _component2 = new components_PlayerAnimation();
 	this.component_count++;
 	this._components.add(_component2);
-	var _component3 = new components_Glow(12648352,512);
+	var _component3 = new components_Energy(100);
 	this.component_count++;
-	var glow = this._components.add(_component3);
+	this.energy = this._components.add(_component3);
+	var _component4 = new components_Glow(12648352,512);
+	this.component_count++;
+	var glow = this._components.add(_component4);
+	var _component5 = new components_Collision();
+	this.component_count++;
+	this._components.add(_component5);
 };
 $hxClasses["entities.Player"] = entities_Player;
 entities_Player.__name__ = ["entities","Player"];
 entities_Player.__super__ = luxe_Sprite;
 entities_Player.prototype = $extend(luxe_Sprite.prototype,{
 	init: function() {
+		this.events.listen("die",$bind(this,this.die));
 	}
 	,update: function(dt) {
+		this.energy.value -= 1;
+	}
+	,die: function(e) {
 	}
 	,ondestroy: function() {
 		luxe_Sprite.prototype.ondestroy.call(this);
 	}
 	,__class__: entities_Player
 });
+var entities_PlayerEnergyBar = function() {
+	var image = Luxe.resources.cache.get("assets/images/battery.png");
+	image.set_filter_min(image.set_filter_mag(9728));
+	luxe_Sprite.call(this,{ name : "PlayerEnergyBar", texture : image, pos : new phoenix_Vector(96,150), size : new phoenix_Vector(128,256), batcher : C.HUD, depth : 2});
+	this.energy_level = new luxe_Sprite({ pos : new phoenix_Vector(96,258), size : new phoenix_Vector(104,220), color : new phoenix_Color().rgb(6995504), batcher : C.HUD, depth : 1});
+	this.energy_level.set_centered(false);
+	this.energy_level.set_origin(new phoenix_Vector(52,220));
+};
+$hxClasses["entities.PlayerEnergyBar"] = entities_PlayerEnergyBar;
+entities_PlayerEnergyBar.__name__ = ["entities","PlayerEnergyBar"];
+entities_PlayerEnergyBar.__super__ = luxe_Sprite;
+entities_PlayerEnergyBar.prototype = $extend(luxe_Sprite.prototype,{
+	init: function() {
+		var _this = Luxe.scene.entities;
+		this.energy_component = (__map_reserved["Player"] != null ? _this.getReserved("Player") : _this.h["Player"])._components.get("Energy",false);
+	}
+	,update: function(dt) {
+		var height = Math.max(Math.min(this.energy_component.value / this.energy_component.max_value,1) * 220,0);
+		var _this = this.energy_level.size;
+		var _this1 = this.energy_level.get_origin();
+		_this1.y = height;
+		var _y;
+		if(_this1._construct) {
+			_y = _this1.y;
+		} else {
+			if(_this1.listen_y != null && !_this1.ignore_listeners) {
+				_this1.listen_y(height);
+			}
+			_y = _this1.y;
+		}
+		_this.y = _y;
+		if(!_this._construct) {
+			if(_this.listen_y != null && !_this.ignore_listeners) {
+				_this.listen_y(_y);
+			}
+		}
+	}
+	,ondestroy: function() {
+		luxe_Sprite.prototype.ondestroy.call(this);
+	}
+	,__class__: entities_PlayerEnergyBar
+});
 var entities_World = function() {
+	this.floor_tiles = [3];
 	luxe_Entity.call(this,{ name : "World"});
 };
 $hxClasses["entities.World"] = entities_World;
@@ -4763,7 +4943,7 @@ entities_World.prototype = $extend(luxe_Entity.prototype,{
 						return i4[0]++ % 2 == 0;
 					};
 				})(i3)).map($bind(this,this.is_dungeon_tile)).join(",");
-				haxe_Log.trace(adjacent_key,{ fileName : "World.hx", lineNumber : 154, className : "entities.World", methodName : "generate_world"});
+				haxe_Log.trace(adjacent_key,{ fileName : "World.hx", lineNumber : 156, className : "entities.World", methodName : "generate_world"});
 				if((__map_reserved[adjacent_key] != null ? terrain_adjacent.getReserved(adjacent_key) : terrain_adjacent.h[adjacent_key]) != -1) {
 					this.map.tile_at("world",x,y).set_id(__map_reserved[adjacent_key] != null ? terrain_adjacent.getReserved(adjacent_key) : terrain_adjacent.h[adjacent_key]);
 				} else {
@@ -48884,6 +49064,8 @@ if(ArrayBuffer.prototype.slice == null) {
 }
 var Float32Array = $global.Float32Array || js_html_compat_Float32Array._new;
 var Uint8Array = $global.Uint8Array || js_html_compat_Uint8Array._new;
+C.floor_tiles = [3];
+C.enemies_alive = [];
 haxe_Serializer.USE_CACHE = false;
 haxe_Serializer.USE_ENUM_INDEX = false;
 haxe_Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
