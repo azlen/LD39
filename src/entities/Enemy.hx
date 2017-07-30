@@ -21,7 +21,7 @@ class Enemy extends Sprite {
 	var type : String;
 	var player : Sprite;
 
-	override public function new(t:String) {
+	override public function new(t:String, position:Vector) {
 
 		type = t;
 
@@ -31,16 +31,15 @@ class Enemy extends Sprite {
 
 		switch type {
 			case 'red_led':
-				image = Luxe.resources.texture('assets/images/player_animation.png');
-				enemy_color.rgb(0xff230f);
+				image = Luxe.resources.texture('assets/images/red_led_enemy.png');
 		}
 		
 		image.filter_min = image.filter_mag = FilterType.nearest;
 
 		super({
-			name: 'Enemy',
+			name: 'Enemy.' + Std.string(C.unique_id()),
 			texture: image,
-			pos: new Vector(100, 100),
+			pos: position,
 			size: enemy_size,
 			color: enemy_color,
 

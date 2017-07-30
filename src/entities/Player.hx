@@ -59,8 +59,6 @@ class Player extends Sprite {
 
 	override function update(dt:Float){
 
-		energy.value -= 1;
-
 	}//update
 
 	function die(e) {

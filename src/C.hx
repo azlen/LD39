@@ -14,6 +14,11 @@ class C {
 
 	public static var enemies_alive : Array<Enemy> = [];
 
+	static var increment : Int = 0;
+	public static function unique_id() {
+		return increment++;
+	}
+
 	/*public static var enemy_types : Map = [
 		'red_led' => 
 	];*/

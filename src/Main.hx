@@ -7,11 +7,12 @@ import luxe.Sprite;
 import entities.Player;
 import entities.Gun;
 import entities.World;
-import entities.Enemy;
 
 import entities.PlayerEnergyBar;
 
 import phoenix.Batcher;
+
+import luxe.resource.Resource;
 
 import C;
 
@@ -32,7 +33,12 @@ class Main extends luxe.Game {
 	var darkness_over : Sprite;
 	var darkness_under : Sprite;
 
+	var music : AudioResource;
+
 	override function ready() {
+
+		music = Luxe.resources.audio('assets/music/music.wav');
+		Luxe.audio.loop(music.source);
 
 		Luxe.renderer.clear_color = new Color().rgb(0x000000);
 
@@ -40,12 +46,11 @@ class Main extends luxe.Game {
 		create_darkness();
 		create_HUD();
 
-		C.world = new World();
-
 		player = new Player();
-		new Gun();
 
-		new Enemy('red_led');
+		C.world = new World();
+		
+		new Gun();
 
 		connect_input();
 		
@@ -183,6 +188,7 @@ class Main extends luxe.Game {
 	override function config(config:luxe.GameConfig) {
 
 		config.preload.textures.push({ id: 'assets/images/player_animation.png' });
+		config.preload.textures.push({ id: 'assets/images/red_led_enemy.png' });
 		config.preload.jsons.push({ id: 'assets/animations/player_animation.json' });
 
 		config.preload.textures.push({ id: 'assets/images/dungeon.png' });
@@ -191,6 +197,12 @@ class Main extends luxe.Game {
 		config.preload.textures.push({ id: 'assets/images/glow.png' });
 		config.preload.textures.push({ id: 'assets/images/glow_alpha.png' });
 		config.preload.textures.push({ id: 'assets/images/battery.png' });
+
+		config.preload.sounds.push({ id: 'assets/sounds/hurt.wav', is_stream: false });
+		config.preload.sounds.push({ id: 'assets/sounds/pickup.wav', is_stream: false });
+		config.preload.sounds.push({ id: 'assets/sounds/shoot.wav', is_stream: false });
+
+		config.preload.sounds.push({ id: 'assets/music/music.wav', is_stream: false });
 
 		return config;
 

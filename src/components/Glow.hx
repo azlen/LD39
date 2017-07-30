@@ -66,4 +66,9 @@ class Glow extends Component {
 
 	}
 
+	override function ondestroy() {
+		glow_sprite.destroy();
+		under_glow_sprite.destroy();
+	}
+
 }

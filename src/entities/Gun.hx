@@ -8,14 +8,20 @@ import phoenix.Texture;
 
 import entities.Bullet;
 
+import luxe.resource.Resource;
+
 class Gun extends Sprite {
 
 	var player : Sprite;
+
+	var shoot_sound : AudioResource;
 
 	override public function new() {
 
 		var image = Luxe.resources.texture('assets/images/gun.png');
 		image.filter_min = image.filter_mag = FilterType.nearest;
+
+		shoot_sound = Luxe.resources.audio('assets/sounds/shoot.wav');
 
 		super({
 			name: 'Gun',
@@ -59,8 +65,12 @@ class Gun extends Sprite {
 	}
 
 	function spawn_bullet() {
+		Luxe.audio.play(shoot_sound.source);
+
 		var direction = pos.clone().subtract(player.pos); // actual offset
 		direction.length = 1; // set length to 1 to create direction
+
+		player.events.fire('damage', { amount: 2 });
 
 		new Bullet(pos.clone(), direction);
 	}

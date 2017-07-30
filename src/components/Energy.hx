@@ -21,7 +21,7 @@ class Energy extends Component {
 	override public function init() {
 
 		entity.events.listen('damage', hurt);
-		
+
 	} // init
 
 	override function update(dt:Float) {
@@ -32,7 +32,7 @@ class Energy extends Component {
 
 	function hurt(e) {
 
-		value -= 1;
+		value -= e.amount;
 
 		if(value <= 0) {
 			entity.events.fire('die');

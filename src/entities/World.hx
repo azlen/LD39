@@ -45,8 +45,8 @@ class World extends Entity {
 		var tilemap_opts : TilemapOptions = {
 			tile_width: 16,
 			tile_height: 16,
-			w: 20, // width of tilemap
-			h: 20, // height of tilemap
+			w: 40, // width of tilemap
+			h: 40, // height of tilemap
 			orientation : TilemapOrientation.ortho,
 		};
 
@@ -76,9 +76,9 @@ class World extends Entity {
 
 		map.add_tiles_fill_by_id( 'world', 3 );
 
-		for(i in 0...10) {
-			var width = Luxe.utils.random.int(2, 5);
-			var height = Luxe.utils.random.int(2, 5);
+		for(i in 0...30) { // create holes around edges
+			var width = Luxe.utils.random.int(3, 9);
+			var height = Luxe.utils.random.int(3, 9);
 
 			var offset_along_edge = Luxe.utils.random.int(0, map.width - Math.max(width, height));
 			var edge = Luxe.utils.random.int(0, 4);
@@ -98,6 +98,24 @@ class World extends Entity {
 				}
 			}
 		}
+
+		for(i in 0...13) { // create holes randomly within map
+			var width = Luxe.utils.random.int(2, 5);
+			var height = Luxe.utils.random.int(2, 5);
+
+			var position = new Vector(
+				Luxe.utils.random.int(0, map.width - width),
+				Luxe.utils.random.int(0, map.height - height)
+			);
+
+			for(x_offset in 0...width) {
+				for(y_offset in 0...height) {
+					map.tile_at('world', Std.int(position.x + x_offset), Std.int(position.y + y_offset)).id = 1;
+				}
+			}
+		}
+
+
 
 		var terrain_adjacent = [
 			'0,0,0,0' => 1, // !
@@ -139,6 +157,8 @@ class World extends Entity {
 			'1,1,1,1' => 3, // FLOOR
 		];
 
+		var floor_tile_array = [];
+
 		for(x in 0...map.width) {
 			for(y in 0...map.height) {
 				var surrounding_tiles = get_surrounding_tiles(x, y);
@@ -160,11 +180,30 @@ class World extends Entity {
 					map.tile_at('world', x, y).id = terrain_adjacent[adjacent_key];
 				}else{
 					// trace(x, y, terrain_diagonal[adjacent_key]);
-					map.tile_at('world', x, y).id = terrain_diagonal[diagonal_key];
+					var new_tile_id = terrain_diagonal[diagonal_key];
+					var tile = map.tile_at('world', x, y);
+					tile.id = new_tile_id;
+
+					if(C.floor_tiles.indexOf(new_tile_id) != -1) {
+						floor_tile_array.push(tile);
+					}
 				}
 			}
 		}
 		// map.tile_at('world', 0, 0).id = 2;
+
+
+		// SPAWN ENEMIES
+		for(i in 0...10) {
+			var tile = floor_tile_array[Luxe.utils.random.int(0, floor_tile_array.length)];
+
+			new Enemy('red_led', map.tile_pos(tile.x, tile.y, 4));
+		}
+
+		// PLAYER POSITION
+		var starting_tile = floor_tile_array[Luxe.utils.random.int(0, floor_tile_array.length)];
+
+		Luxe.scene.entities.get('Player').pos.copy_from(map.tile_pos(starting_tile.x, starting_tile.y, 4));
 
 	} // generate_map
 
