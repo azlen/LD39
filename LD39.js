@@ -1071,8 +1071,10 @@ var components_Glow = function(hex,d) {
 	var alpha_image = Luxe.resources.cache.get("assets/images/glow_alpha.png");
 	this.glow_sprite = new luxe_Sprite({ texture : image, size : new phoenix_Vector(this.diameter,this.diameter), color : new phoenix_Color().rgb(hex), batcher : C.glow_batcher});
 	this.glow_sprite.color.a = 0.6;
+	this.glow_sprite.color.a = 0.05;
 	this.under_glow_sprite = new luxe_Sprite({ texture : alpha_image, size : new phoenix_Vector(this.diameter,this.diameter), color : new phoenix_Color().rgb(hex), depth : 5});
 	this.under_glow_sprite.color.a = 0.5;
+	this.under_glow_sprite.color.a = 0.07;
 	if(d != null) {
 		this.set_diameter(d);
 	}
@@ -4135,8 +4137,8 @@ entities_Enemy.prototype = $extend(luxe_Sprite.prototype,{
 			this.movement.max_move_speed = 50;
 			var _g1 = this.movement.direction;
 			var _this7 = Luxe.utils.random;
-			var min2 = -0.3;
-			var max2 = 0.3;
+			var min2 = -0.45;
+			var max2 = 0.45;
 			if(max2 == null) {
 				max2 = min2;
 				min2 = 0;
@@ -4213,7 +4215,7 @@ entities_Enemy.prototype = $extend(luxe_Sprite.prototype,{
 						_this9.listen_z(_this9.z);
 					}
 					var _this10 = _this9;
-					tmp = Math.sqrt(_this10.x * _this10.x + _this10.y * _this10.y + _this10.z * _this10.z) < 400;
+					tmp = Math.sqrt(_this10.x * _this10.x + _this10.y * _this10.y + _this10.z * _this10.z) < 300;
 				} else {
 					tmp = true;
 				}
@@ -4822,7 +4824,7 @@ var entities_PlayerEnergyBar = function() {
 	var image = Luxe.resources.cache.get("assets/images/battery.png");
 	image.set_filter_min(image.set_filter_mag(9728));
 	luxe_Sprite.call(this,{ name : "PlayerEnergyBar", texture : image, pos : new phoenix_Vector(96,150), size : new phoenix_Vector(128,256), batcher : C.HUD, depth : 2});
-	this.energy_level = new luxe_Sprite({ pos : new phoenix_Vector(96,258), size : new phoenix_Vector(104,220), color : new phoenix_Color().rgb(6995504), batcher : C.HUD, depth : 1});
+	this.energy_level = new luxe_Sprite({ pos : new phoenix_Vector(96,258), size : new phoenix_Vector(104,220), color : new phoenix_Color().rgb(10085712), batcher : C.HUD, depth : 1});
 	this.energy_level.set_centered(false);
 	this.energy_level.set_origin(new phoenix_Vector(52,220));
 };
@@ -4866,9 +4868,6 @@ var entities_Powerup = function(position) {
 	image.set_filter_min(image.set_filter_mag(9728));
 	this.pickup_sound = Luxe.resources.cache.get("assets/sounds/pickup.wav");
 	luxe_Sprite.call(this,{ name : "Powerup" + Std.string(C.unique_id()), texture : image, pos : position, size : new phoenix_Vector(64,64), depth : 9});
-	var _component = new components_Glow(12648352,128);
-	this.component_count++;
-	this._components.add(_component);
 };
 $hxClasses["entities.Powerup"] = entities_Powerup;
 entities_Powerup.__name__ = ["entities","Powerup"];
