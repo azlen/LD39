@@ -12,25 +12,31 @@ import luxe.ParcelProgress;
 
 import C;
 
+/*
 #if (!web)
 	import luxe.gifcapture.LuxeGifCapture;
 	import dialogs.Dialogs; // dialogs for saving gifs
 #end
+*/
 
 class Main extends luxe.Game {
 
+	/*
 	#if (!web)
 		var capture : LuxeGifCapture;
 	#end
+	*/
 
 	var music : AudioResource;
 
 	override function ready() {
 		preload_assets();
 
+		/*
 		#if (!web)
 			init_gifcapture();
 		#end
+		*/
 	} // ready
 
 	function assets_loaded(_) {
@@ -61,6 +67,7 @@ class Main extends luxe.Game {
 
 	override function onkeyup( e:KeyEvent ) {
 
+		/*
 		#if (!web)
 			if(e.keycode == Key.space) {
 				if(capture.state == Paused) {
@@ -72,6 +79,7 @@ class Main extends luxe.Game {
 				}
 			}
 		#end
+		*/
 
 		if(e.keycode == Key.escape) {
 			Luxe.shutdown();
@@ -90,6 +98,7 @@ class Main extends luxe.Game {
 
 	} // connect_input
 
+	/*
 	#if (!web)
 		function init_gifcapture() {
 
@@ -108,6 +117,7 @@ class Main extends luxe.Game {
 
 		} // init_gifcapture
 	#end
+	*/
 
 	function preload_assets() {
 

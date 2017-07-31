@@ -34,7 +34,7 @@ class Powerup extends Sprite {
 			depth: 9
 		});
 
-		add(new Glow(0xc0ffa0, 128));
+		// add(new Glow(0xc0ffa0, 128));
 
 	}
 

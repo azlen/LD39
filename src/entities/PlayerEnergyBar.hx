@@ -35,7 +35,7 @@ class PlayerEnergyBar extends Sprite {
 		energy_level = new Sprite({
 			pos: new Vector(96, 258),
 			size: new Vector(104, 220),
-			color: new Color().rgb(0x6abe30),
+			color: new Color().rgb(0x99e550),
 			batcher: C.HUD,
 
 			depth: 1,

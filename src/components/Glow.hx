@@ -33,6 +33,10 @@ class Glow extends Component {
 
 		glow_sprite.color.a = 0.6;
 
+		#if(web)
+			glow_sprite.color.a = 0.05;
+		#end
+
 		under_glow_sprite = new Sprite({
 			texture: alpha_image,
 			size: new Vector(diameter, diameter),
@@ -41,6 +45,10 @@ class Glow extends Component {
 		});
 
 		under_glow_sprite.color.a = 0.5;
+
+		#if(web)
+			under_glow_sprite.color.a = 0.07;
+		#end
 
 		if(d != null) {
 			diameter = d;

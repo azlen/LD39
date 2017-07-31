@@ -90,7 +90,7 @@ class Enemy extends Sprite {
 					movement.direction.angle2D = Luxe.utils.random.int(0, 2 * Math.PI);
 				}
 				movement.max_move_speed = 50;
-				movement.direction.angle2D += Luxe.utils.random.float(-0.3, 0.3);
+				movement.direction.angle2D += Luxe.utils.random.float(-0.45, 0.45);
 
 			case 'chasing':
 				movement.max_move_speed = 140;
@@ -103,7 +103,7 @@ class Enemy extends Sprite {
 
 		switch type {
 			case 'red_led':
-				if(state == 'wandering' && (get('Energy').value < 4 || pos.clone().subtract(player.pos).length < 400)) {
+				if(state == 'wandering' && (get('Energy').value < 4 || pos.clone().subtract(player.pos).length < 300)) {
 					state = 'chasing';
 				}
 		}
