@@ -430,7 +430,7 @@ Main.prototype = $extend(luxe_Game.prototype,{
 		Luxe.input.bind_key("right",100);
 	}
 	,preload_assets: function() {
-		var parcel = new luxe_Parcel({ textures : [{ id : "assets/images/player_animation.png"},{ id : "assets/images/red_led_enemy.png"},{ id : "assets/images/dungeon.png"},{ id : "assets/images/gun.png"},{ id : "assets/images/bullet.png"},{ id : "assets/images/glow.png"},{ id : "assets/images/glow_alpha.png"},{ id : "assets/images/battery.png"},{ id : "assets/images/battery_powerup.png"},{ id : "assets/images/title_screen.png"},{ id : "assets/images/press_any_key.png"}], jsons : [{ id : "assets/animations/player_animation.json"}], sounds : [{ id : "assets/sounds/hurt.wav", is_stream : false},{ id : "assets/sounds/pickup.wav", is_stream : false},{ id : "assets/sounds/shoot.wav", is_stream : false},{ id : "assets/music/music.wav", is_stream : false}]});
+		var parcel = new luxe_Parcel({ textures : [{ id : "assets/images/player_animation.png"},{ id : "assets/images/red_led_enemy.png"},{ id : "assets/images/dungeon.png"},{ id : "assets/images/gun.png"},{ id : "assets/images/bullet.png"},{ id : "assets/images/glow.png"},{ id : "assets/images/glow_alpha.png"},{ id : "assets/images/battery.png"},{ id : "assets/images/battery_powerup.png"},{ id : "assets/images/title_screen.png"},{ id : "assets/images/press_any_key.png"},{ id : "assets/images/microchip.png"}], jsons : [{ id : "assets/animations/player_animation.json"},{ id : "assets/animations/microchip_animation.json"}], sounds : [{ id : "assets/sounds/hurt.wav", is_stream : false},{ id : "assets/sounds/pickup.wav", is_stream : false},{ id : "assets/sounds/shoot.wav", is_stream : false},{ id : "assets/music/music.wav", is_stream : false}]});
 		new luxe_ParcelProgress({ parcel : parcel, background : new phoenix_Color(0,0,0,0.85), oncomplete : $bind(this,this.assets_loaded)});
 		parcel.load();
 	}
@@ -1217,6 +1217,56 @@ components_Glow.prototype = $extend(luxe_Component.prototype,{
 	}
 	,__class__: components_Glow
 	,__properties__: $extend(luxe_Component.prototype.__properties__,{set_diameter:"set_diameter"})
+});
+var components_MicrochipAnimation = function() {
+	luxe_Component.call(this,{ name : "MicrochipAnimation"});
+};
+$hxClasses["components.MicrochipAnimation"] = components_MicrochipAnimation;
+components_MicrochipAnimation.__name__ = ["components","MicrochipAnimation"];
+components_MicrochipAnimation.__super__ = luxe_Component;
+components_MicrochipAnimation.prototype = $extend(luxe_Component.prototype,{
+	init: function() {
+		this.direction = this.get_entity()._components.get("Movement",false).direction;
+		this.velocity = this.get_entity()._components.get("Movement",false).velocity;
+		this.create_animation();
+	}
+	,update: function(dt) {
+		this.update_animation();
+	}
+	,create_animation: function() {
+		var _this = this.get_entity();
+		var _component = new luxe_components_sprite_SpriteAnimation({ name : "SpriteAnimation"});
+		_this.component_count++;
+		this.anim = _this._components.add(_component);
+		var anim_data = Luxe.resources.cache.get("assets/animations/microchip_animation.json").asset.json;
+		this.anim.add_from_json_object(anim_data);
+		if(this.anim.animation != "idle_side") {
+			this.anim.set_animation("idle_side");
+		}
+		this.anim.play();
+	}
+	,update_animation: function() {
+		var _this = this.velocity;
+		if(Math.sqrt(_this.x * _this.x + _this.y * _this.y + _this.z * _this.z) > 0) {
+			if(this.anim.animation != "walk_side") {
+				this.anim.set_animation("walk_side");
+			}
+		} else if(this.anim.animation != "idle_side") {
+			this.anim.set_animation("idle_side");
+		}
+	}
+	,set_animation: function(name) {
+		if(this.anim.animation != name) {
+			this.anim.set_animation(name);
+		}
+	}
+	,ondestroy: function() {
+		luxe_Component.prototype.ondestroy.call(this);
+	}
+	,onremoved: function() {
+		luxe_Component.prototype.onremoved.call(this);
+	}
+	,__class__: components_MicrochipAnimation
 });
 var components_Movement = function() {
 	this.velocity = new phoenix_Vector(0,0);
@@ -3898,8 +3948,13 @@ var entities_Enemy = function(t,position) {
 	var enemy_color = new phoenix_Color().rgb(16777215);
 	var enemy_size = new phoenix_Vector(64,64);
 	var _g = this.type;
-	if(_g == "red_led") {
+	switch(_g) {
+	case "microchip":
+		image = Luxe.resources.cache.get("assets/images/microchip.png");
+		break;
+	case "red_led":
 		image = Luxe.resources.cache.get("assets/images/red_led_enemy.png");
+		break;
 	}
 	image.set_filter_min(image.set_filter_mag(9728));
 	luxe_Sprite.call(this,{ name : "Enemy." + Std.string(C.unique_id()), texture : image, pos : position, size : enemy_size, color : enemy_color, depth : 10});
@@ -3912,15 +3967,23 @@ var entities_Enemy = function(t,position) {
 	this.movement.max_move_speed = 150;
 	var hp = 1;
 	var _g1 = this.type;
-	if(_g1 == "red_led") {
-		var _component2 = new components_PlayerAnimation();
+	switch(_g1) {
+	case "microchip":
+		var _component2 = new components_MicrochipAnimation();
 		this.component_count++;
 		this._components.add(_component2);
+		hp = 2;
+		break;
+	case "red_led":
+		var _component3 = new components_PlayerAnimation();
+		this.component_count++;
+		this._components.add(_component3);
 		hp = 4;
+		break;
 	}
-	var _component3 = new components_Energy(hp);
+	var _component4 = new components_Energy(hp);
 	this.component_count++;
-	this._components.add(_component3);
+	this._components.add(_component4);
 	C.enemies_alive.push(this);
 };
 $hxClasses["entities.Enemy"] = entities_Enemy;
@@ -3932,8 +3995,13 @@ entities_Enemy.prototype = $extend(luxe_Sprite.prototype,{
 		this.player = __map_reserved["Player"] != null ? _this.getReserved("Player") : _this.h["Player"];
 		this.events.listen("die",$bind(this,this.die));
 		var _g = this.type;
-		if(_g == "red_led") {
+		switch(_g) {
+		case "microchip":
 			this.state = "wandering";
+			break;
+		case "red_led":
+			this.state = "wandering";
+			break;
 		}
 	}
 	,update: function(dt) {
@@ -4171,10 +4239,11 @@ entities_Enemy.prototype = $extend(luxe_Sprite.prototype,{
 			break;
 		}
 		var _g11 = this.type;
-		if(_g11 == "red_led") {
+		switch(_g11) {
+		case "microchip":
 			var tmp;
 			if(this.state == "wandering") {
-				if(this._components.get("Energy",false).value >= 4) {
+				if(this._components.get("Energy",false).value >= 2) {
 					var _this8 = this.get_pos();
 					var _this9 = new phoenix_Vector(_this8.x,_this8.y,_this8.z,_this8.w);
 					var other1 = this.player.get_pos();
@@ -4215,7 +4284,7 @@ entities_Enemy.prototype = $extend(luxe_Sprite.prototype,{
 						_this9.listen_z(_this9.z);
 					}
 					var _this10 = _this9;
-					tmp = Math.sqrt(_this10.x * _this10.x + _this10.y * _this10.y + _this10.z * _this10.z) < 300;
+					tmp = Math.sqrt(_this10.x * _this10.x + _this10.y * _this10.y + _this10.z * _this10.z) < 200;
 				} else {
 					tmp = true;
 				}
@@ -4225,6 +4294,62 @@ entities_Enemy.prototype = $extend(luxe_Sprite.prototype,{
 			if(tmp) {
 				this.state = "chasing";
 			}
+			break;
+		case "red_led":
+			var tmp1;
+			if(this.state == "wandering") {
+				if(this._components.get("Energy",false).value >= 4) {
+					var _this11 = this.get_pos();
+					var _this12 = new phoenix_Vector(_this11.x,_this11.y,_this11.z,_this11.w);
+					var other2 = this.player.get_pos();
+					if(other2 == null) {
+						throw new js__$Boot_HaxeError(luxe_DebugError.null_assertion("other was null"));
+					}
+					var _x6 = _this12.x - other2.x;
+					var _y6 = _this12.y - other2.y;
+					var _z4 = _this12.z - other2.z;
+					var prev7 = _this12.ignore_listeners;
+					_this12.ignore_listeners = true;
+					_this12.x = _x6;
+					if(!_this12._construct) {
+						if(_this12.listen_x != null && !_this12.ignore_listeners) {
+							_this12.listen_x(_x6);
+						}
+					}
+					_this12.y = _y6;
+					if(!_this12._construct) {
+						if(_this12.listen_y != null && !_this12.ignore_listeners) {
+							_this12.listen_y(_y6);
+						}
+					}
+					_this12.z = _z4;
+					if(!_this12._construct) {
+						if(_this12.listen_z != null && !_this12.ignore_listeners) {
+							_this12.listen_z(_z4);
+						}
+					}
+					_this12.ignore_listeners = prev7;
+					if(_this12.listen_x != null && !_this12.ignore_listeners) {
+						_this12.listen_x(_this12.x);
+					}
+					if(_this12.listen_y != null && !_this12.ignore_listeners) {
+						_this12.listen_y(_this12.y);
+					}
+					if(_this12.listen_z != null && !_this12.ignore_listeners) {
+						_this12.listen_z(_this12.z);
+					}
+					var _this13 = _this12;
+					tmp1 = Math.sqrt(_this13.x * _this13.x + _this13.y * _this13.y + _this13.z * _this13.z) < 300;
+				} else {
+					tmp1 = true;
+				}
+			} else {
+				tmp1 = false;
+			}
+			if(tmp1) {
+				this.state = "chasing";
+			}
+			break;
 		}
 	}
 	,die: function(e) {
@@ -5418,7 +5543,7 @@ entities_World.prototype = $extend(luxe_Entity.prototype,{
 			}
 		}
 		var _g23 = 0;
-		while(_g23 < 10) {
+		while(_g23 < 7) {
 			var i6 = _g23++;
 			var _this8 = Luxe.utils.random;
 			var min16 = 0;
@@ -5437,7 +5562,7 @@ entities_World.prototype = $extend(luxe_Entity.prototype,{
 			new entities_Enemy("red_led",this.map.tile_pos(tile3.x,tile3.y,4));
 		}
 		var _g24 = 0;
-		while(_g24 < 20) {
+		while(_g24 < 6) {
 			var i7 = _g24++;
 			var _this9 = Luxe.utils.random;
 			var min18 = 0;
@@ -5453,59 +5578,78 @@ entities_World.prototype = $extend(luxe_Entity.prototype,{
 				min19 = 0;
 			}
 			var tile4 = floor_tile_array[Math.floor(((_this9.seed = _this9.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max19 - min19) + min19)];
-			new entities_Powerup(this.map.tile_pos(tile4.x,tile4.y,4));
+			new entities_Enemy("microchip",this.map.tile_pos(tile4.x,tile4.y,4));
 		}
-		var _this10 = Luxe.utils.random;
-		var min20 = 0;
-		var max20 = floor_tile_array.length;
-		if(max20 == null) {
-			max20 = min20;
-			min20 = 0;
+		var _g25 = 0;
+		while(_g25 < 20) {
+			var i8 = _g25++;
+			var _this10 = Luxe.utils.random;
+			var min20 = 0;
+			var max20 = floor_tile_array.length;
+			if(max20 == null) {
+				max20 = min20;
+				min20 = 0;
+			}
+			var min21 = min20;
+			var max21 = max20;
+			if(max21 == null) {
+				max21 = min21;
+				min21 = 0;
+			}
+			var tile5 = floor_tile_array[Math.floor(((_this10.seed = _this10.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max21 - min21) + min21)];
+			new entities_Powerup(this.map.tile_pos(tile5.x,tile5.y,4));
 		}
-		var min21 = min20;
-		var max21 = max20;
-		if(max21 == null) {
-			max21 = min21;
-			min21 = 0;
+		var _this11 = Luxe.utils.random;
+		var min22 = 0;
+		var max22 = floor_tile_array.length;
+		if(max22 == null) {
+			max22 = min22;
+			min22 = 0;
 		}
-		var starting_tile = floor_tile_array[Math.floor(((_this10.seed = _this10.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max21 - min21) + min21)];
-		var _this11 = Luxe.scene.entities;
-		var _this12 = (__map_reserved["Player"] != null ? _this11.getReserved("Player") : _this11.h["Player"]).get_pos();
+		var min23 = min22;
+		var max23 = max22;
+		if(max23 == null) {
+			max23 = min23;
+			min23 = 0;
+		}
+		var starting_tile = floor_tile_array[Math.floor(((_this11.seed = _this11.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max23 - min23) + min23)];
+		var _this12 = Luxe.scene.entities;
+		var _this13 = (__map_reserved["Player"] != null ? _this12.getReserved("Player") : _this12.h["Player"]).get_pos();
 		var _other = this.map.tile_pos(starting_tile.x,starting_tile.y,4);
 		var _x2 = _other.x;
 		var _y2 = _other.y;
 		var _z = _other.z;
 		var _w = _other.w;
-		var prev4 = _this12.ignore_listeners;
-		_this12.ignore_listeners = true;
-		_this12.x = _x2;
-		if(!_this12._construct) {
-			if(_this12.listen_x != null && !_this12.ignore_listeners) {
-				_this12.listen_x(_x2);
+		var prev4 = _this13.ignore_listeners;
+		_this13.ignore_listeners = true;
+		_this13.x = _x2;
+		if(!_this13._construct) {
+			if(_this13.listen_x != null && !_this13.ignore_listeners) {
+				_this13.listen_x(_x2);
 			}
 		}
-		_this12.y = _y2;
-		if(!_this12._construct) {
-			if(_this12.listen_y != null && !_this12.ignore_listeners) {
-				_this12.listen_y(_y2);
+		_this13.y = _y2;
+		if(!_this13._construct) {
+			if(_this13.listen_y != null && !_this13.ignore_listeners) {
+				_this13.listen_y(_y2);
 			}
 		}
-		_this12.z = _z;
-		if(!_this12._construct) {
-			if(_this12.listen_z != null && !_this12.ignore_listeners) {
-				_this12.listen_z(_z);
+		_this13.z = _z;
+		if(!_this13._construct) {
+			if(_this13.listen_z != null && !_this13.ignore_listeners) {
+				_this13.listen_z(_z);
 			}
 		}
-		_this12.w = _w;
-		_this12.ignore_listeners = prev4;
-		if(_this12.listen_x != null && !_this12.ignore_listeners) {
-			_this12.listen_x(_this12.x);
+		_this13.w = _w;
+		_this13.ignore_listeners = prev4;
+		if(_this13.listen_x != null && !_this13.ignore_listeners) {
+			_this13.listen_x(_this13.x);
 		}
-		if(_this12.listen_y != null && !_this12.ignore_listeners) {
-			_this12.listen_y(_this12.y);
+		if(_this13.listen_y != null && !_this13.ignore_listeners) {
+			_this13.listen_y(_this13.y);
 		}
-		if(_this12.listen_z != null && !_this12.ignore_listeners) {
-			_this12.listen_z(_this12.z);
+		if(_this13.listen_z != null && !_this13.ignore_listeners) {
+			_this13.listen_z(_this13.z);
 		}
 	}
 	,get_surrounding_tiles: function(x,y) {
