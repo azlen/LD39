@@ -134,9 +134,11 @@ class Main extends luxe.Game {
 				{ id:'assets/images/battery_powerup.png' },
 				{ id:'assets/images/title_screen.png' },
 				{ id:'assets/images/press_any_key.png' },
+				{ id:'assets/images/microchip.png' },
 			],
 			jsons: [
 				{ id:'assets/animations/player_animation.json' },
+				{ id:'assets/animations/microchip_animation.json' },
 			],
 			sounds: [
 				{ id: 'assets/sounds/hurt.wav', is_stream: false },

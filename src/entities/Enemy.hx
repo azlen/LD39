@@ -10,6 +10,7 @@ import components.PlayerAnimation;
 import components.Glow;
 import components.Collision;
 import components.Energy;
+import components.MicrochipAnimation;
 
 import phoenix.Texture;
 
@@ -34,6 +35,9 @@ class Enemy extends Sprite {
 		switch type {
 			case 'red_led':
 				image = Luxe.resources.texture('assets/images/red_led_enemy.png');
+
+			case 'microchip':
+				image = Luxe.resources.texture('assets/images/microchip.png');
 		}
 		
 		image.filter_min = image.filter_mag = FilterType.nearest;
@@ -60,6 +64,11 @@ class Enemy extends Sprite {
 				add(new PlayerAnimation()); // HAHA
 				// add(new Glow(0xffc0a0, 512));
 				hp = 4;
+
+			case 'microchip':
+				add(new MicrochipAnimation()); // HAHA
+				// add(new Glow(0xffc0a0, 512));
+				hp = 2;
 		}
 
 		add(new Energy(hp));
@@ -76,6 +85,9 @@ class Enemy extends Sprite {
 
 		switch type {
 			case 'red_led':
+				state = 'wandering';
+
+			case 'microchip':
 				state = 'wandering';
 		}
 
@@ -104,6 +116,11 @@ class Enemy extends Sprite {
 		switch type {
 			case 'red_led':
 				if(state == 'wandering' && (get('Energy').value < 4 || pos.clone().subtract(player.pos).length < 300)) {
+					state = 'chasing';
+				}
+
+			case 'microchip':
+				if(state == 'wandering' && (get('Energy').value < 2 || pos.clone().subtract(player.pos).length < 200)) {
 					state = 'chasing';
 				}
 		}

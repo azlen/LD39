@@ -194,9 +194,15 @@ class World extends Entity {
 
 
 		// SPAWN ENEMIES
-		for(i in 0...10) {
+		for(i in 0...7) {
 			var tile = floor_tile_array[Luxe.utils.random.int(0, floor_tile_array.length)];
 			new Enemy('red_led', map.tile_pos(tile.x, tile.y, 4));
+		}
+
+		// SPAWN ENEMIES
+		for(i in 0...6) {
+			var tile = floor_tile_array[Luxe.utils.random.int(0, floor_tile_array.length)];
+			new Enemy('microchip', map.tile_pos(tile.x, tile.y, 4));
 		}
 
 		// SPAWN POWERUPS

@@ -1,0 +1,14 @@
+{
+	"idle_side" : {
+		"frame_size":{ "x":16, "y":16 },
+		"frameset": ["1-2"],
+		"loop": true,
+		"speed": 2
+	},
+	"walk_side" : {
+		"frame_size":{ "x":16, "y":16 },
+		"frameset": ["3-7"],
+		"loop": true,
+		"speed": 12
+	}
+}
