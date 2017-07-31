@@ -31,6 +31,8 @@ class Glow extends Component {
 			batcher: C.glow_batcher
 		});
 
+		glow_sprite.color.a = 0.6;
+
 		under_glow_sprite = new Sprite({
 			texture: alpha_image,
 			size: new Vector(diameter, diameter),

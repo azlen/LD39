@@ -56,7 +56,7 @@ class Bullet extends Sprite {
 	override function update(dt:Float) {
 
 		// trace(enemies.length);
-		if(!used) {
+		if(!used && !C.PAUSED) {
 			for(i in 0...C.enemies_alive.length) {
 				var enemy = C.enemies_alive[i];
 				if(enemy == null || pos == null) { continue; }

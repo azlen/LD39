@@ -10,6 +10,8 @@ import components.Glow;
 import components.Energy;
 import components.Collision;
 
+import entities.Overlay;
+
 import luxe.Color;
 import luxe.Vector;
 
@@ -18,6 +20,9 @@ import phoenix.Texture;
 class Player extends Sprite {
 
 	var energy : Energy;
+
+	var follow_light1 : Sprite;
+	var follow_light2 : Sprite;
 
 	override public function new(){
 
@@ -47,6 +52,18 @@ class Player extends Sprite {
 		// add(new Glow(0x6abe30));
 		var glow = add(new Glow(0xc0ffa0, 512));
 
+		follow_light1 = new Sprite({
+			pos: new Vector(0,0),
+			size: new Vector(0,0)
+		});
+		follow_light1.add(new Glow(0xc0ffa0, 1024));
+
+		follow_light2 = new Sprite({
+			pos: new Vector(0,0),
+			size: new Vector(0,0)
+		});
+		// follow_light2.add(new Glow(0xc0ffa0, 512));
+
 		// add collision
 		add(new Collision());
 	}
@@ -59,12 +76,20 @@ class Player extends Sprite {
 
 	override function update(dt:Float){
 
+		follow_light1.pos.copy_from(pos);
+		follow_light2.pos.copy_from(pos);
+
 	}//update
 
 	function die(e) {
 
-		C.state.set('Lose');
-		
+		if(!C.PAUSED) {
+
+			C.PAUSED = true;
+
+			new Overlay('YOU LOSE!');
+		}
+
 	}
 
 }//Player

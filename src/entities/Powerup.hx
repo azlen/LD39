@@ -44,7 +44,7 @@ class Powerup extends Sprite {
 
 	override function update(dt:Float) {
 
-		if(!used) {
+		if(!used && !C.PAUSED) {
 			if(	pos.x > player.pos.x - player.size.x / 2 &&
 				pos.x < player.pos.x + player.size.x / 2 &&
 				pos.y > player.pos.y - player.size.y / 2 &&

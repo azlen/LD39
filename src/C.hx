@@ -7,6 +7,8 @@ import luxe.States;
 
 class C {
 
+	public static var PAUSED : Bool = false;
+
 	public static var state : States;
 
 	public static var glow_batcher : Batcher;

@@ -5,6 +5,8 @@ import luxe.Component;
 import luxe.Vector;
 import luxe.Sprite;
 
+import C;
+
 class Movement extends Component {
 
 	var sprite : Sprite;
@@ -44,9 +46,10 @@ class Movement extends Component {
 			sprite.flipx = true;
 		}
 
-		pos.x += velocity.x * dt;
-		pos.y += velocity.y * dt;
-
+		if(!C.PAUSED) {
+			pos.x += velocity.x * dt;
+			pos.y += velocity.y * dt;
+		}
 
 
 		if(direction.length != 0) {

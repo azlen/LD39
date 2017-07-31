@@ -41,27 +41,31 @@ class Gun extends Sprite {
 	}
 
 	override function onmousedown(event:MouseEvent) {
-		spawn_bullet();
+		if(!C.PAUSED) {
+			spawn_bullet();
+		}
 	}
 
 	override function update(dt:Float) {
-		var offset = Luxe.screen.cursor.pos.clone().add(Luxe.camera.pos).subtract(player.pos);
-		offset.length = 42;
-		pos.copy_from(player.pos).add(offset);
+		if(!C.PAUSED) {
+			var offset = Luxe.screen.cursor.pos.clone().add(Luxe.camera.pos).subtract(player.pos);
+			offset.length = 42;
+			pos.copy_from(player.pos).add(offset);
 
-		radians = offset.angle2D;
+			radians = offset.angle2D;
 
-		if(rotation_z > 90 || rotation_z < -90) {
-			flipy = true;
-		} else {
-			flipy = false;
-		}
+			if(rotation_z > 90 || rotation_z < -90) {
+				flipy = true;
+			} else {
+				flipy = false;
+			}
 
-		if(rotation_z > 0) {
-			depth = 11;
-		} else {
-			depth = 9;
-		}
+			if(rotation_z > 0) {
+				depth = 11;
+			} else {
+				depth = 9;
+			}
+		}	
 	}
 
 	function spawn_bullet() {
@@ -70,7 +74,7 @@ class Gun extends Sprite {
 		var direction = pos.clone().subtract(player.pos); // actual offset
 		direction.length = 1; // set length to 1 to create direction
 
-		player.events.fire('damage', { amount: 2 });
+		player.events.fire('damage', { amount: 1 });
 
 		new Bullet(pos.clone(), direction);
 	}

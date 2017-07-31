@@ -21,6 +21,8 @@ class Enemy extends Sprite {
 	var type : String;
 	var player : Sprite;
 
+	var state : String;
+
 	override public function new(t:String, position:Vector) {
 
 		type = t;
@@ -56,7 +58,7 @@ class Enemy extends Sprite {
 		switch type {
 			case 'red_led':
 				add(new PlayerAnimation()); // HAHA
-				add(new Glow(0xffc0a0, 512));
+				// add(new Glow(0xffc0a0, 512));
 				hp = 4;
 		}
 
@@ -72,16 +74,38 @@ class Enemy extends Sprite {
 
 		events.listen('die', die);
 
+		switch type {
+			case 'red_led':
+				state = 'wandering';
+		}
+
 	} // init
 
 	override function update(dt:Float) {
 
-		switch type {
-			case 'red_led':
+		switch state {
+			case 'wandering':
+				if(movement.direction.length == 0) {
+					movement.direction.x = 1;
+					movement.direction.angle2D = Luxe.utils.random.int(0, 2 * Math.PI);
+				}
+				movement.max_move_speed = 50;
+				movement.direction.angle2D += Luxe.utils.random.float(-0.3, 0.3);
+
+			case 'chasing':
+				movement.max_move_speed = 140;
+
 				var direction = player.pos.clone().subtract(pos);
 				direction.length = 1;
 
 				movement.direction = direction;
+		}
+
+		switch type {
+			case 'red_led':
+				if(state == 'wandering' && (get('Energy').value < 4 || pos.clone().subtract(player.pos).length < 400)) {
+					state = 'chasing';
+				}
 		}
 
 	} // update

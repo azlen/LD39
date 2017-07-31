@@ -10,6 +10,7 @@ import entities.Player;
 import entities.Gun;
 import entities.World;
 import entities.PlayerEnergyBar;
+import entities.Overlay;
 
 import phoenix.Batcher;
 
@@ -41,7 +42,7 @@ class Game extends State {
 
 	override function onleave<T>(_:T){
 
-		Luxe.scene.empty();
+		// Luxe.scene.empty();
 
 	} // onleave
 
@@ -52,6 +53,12 @@ class Game extends State {
 		glow_batcher_fill.pos = Luxe.camera.center;
 		darkness_over.pos = Luxe.camera.center;
 		darkness_under.pos = Luxe.camera.center;
+
+		if(!C.PAUSED && C.enemies_alive.length == 0) {
+			C.PAUSED = true;
+
+			new Overlay('YOU WIN!');
+		}
 
 	} // update
 
@@ -85,7 +92,7 @@ class Game extends State {
 		darkness_over = new Sprite({
 			pos: Luxe.camera.center,
 			size: Luxe.screen.size,
-			color: new Color().set(0, 0, 0, 0.2),
+			color: new Color().set(0, 0, 0, 0.4),
 			depth: 20,
 		});
 	} // create_darkness

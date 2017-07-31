@@ -5,6 +5,8 @@ import luxe.Component;
 import luxe.Vector;
 import luxe.components.sprite.SpriteAnimation;
 
+import C;
+
 class PlayerController extends Component {
 
 	var movement_component : Component;
@@ -30,7 +32,12 @@ class PlayerController extends Component {
 	override function update(dt:Float) {
 		
 		// handle input
-		handle_input();
+		if(!C.PAUSED) {
+			handle_input();
+		} else {
+			direction.x = 0;
+			direction.y = 0;
+		}
 
 
 	} // update
