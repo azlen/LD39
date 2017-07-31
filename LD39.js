@@ -1070,6 +1070,7 @@ var components_Glow = function(hex,d) {
 	var image = Luxe.resources.cache.get("assets/images/glow.png");
 	var alpha_image = Luxe.resources.cache.get("assets/images/glow_alpha.png");
 	this.glow_sprite = new luxe_Sprite({ texture : image, size : new phoenix_Vector(this.diameter,this.diameter), color : new phoenix_Color().rgb(hex), batcher : C.glow_batcher});
+	this.glow_sprite.color.a = 0.6;
 	this.under_glow_sprite = new luxe_Sprite({ texture : alpha_image, size : new phoenix_Vector(this.diameter,this.diameter), color : new phoenix_Color().rgb(hex), depth : 5});
 	this.under_glow_sprite.color.a = 0.5;
 	if(d != null) {
@@ -1238,20 +1239,22 @@ components_Movement.prototype = $extend(luxe_Component.prototype,{
 		} else if(this.direction.x < 0) {
 			this.sprite.set_flipx(true);
 		}
-		var _g = this.get_pos();
-		var _x = _g.x + this.velocity.x * dt;
-		_g.x = _x;
-		if(!_g._construct) {
-			if(_g.listen_x != null && !_g.ignore_listeners) {
-				_g.listen_x(_x);
+		if(!C.PAUSED) {
+			var _g = this.get_pos();
+			var _x = _g.x + this.velocity.x * dt;
+			_g.x = _x;
+			if(!_g._construct) {
+				if(_g.listen_x != null && !_g.ignore_listeners) {
+					_g.listen_x(_x);
+				}
 			}
-		}
-		var _g1 = this.get_pos();
-		var _y = _g1.y + this.velocity.y * dt;
-		_g1.y = _y;
-		if(!_g1._construct) {
-			if(_g1.listen_y != null && !_g1.ignore_listeners) {
-				_g1.listen_y(_y);
+			var _g1 = this.get_pos();
+			var _y = _g1.y + this.velocity.y * dt;
+			_g1.y = _y;
+			if(!_g1._construct) {
+				if(_g1.listen_y != null && !_g1.ignore_listeners) {
+					_g1.listen_y(_y);
+				}
 			}
 		}
 		var _this = this.direction;
@@ -1696,7 +1699,24 @@ components_PlayerController.prototype = $extend(luxe_Component.prototype,{
 		this.velocity = this.get_entity()._components.get("Movement",false).velocity;
 	}
 	,update: function(dt) {
-		this.handle_input();
+		if(!C.PAUSED) {
+			this.handle_input();
+		} else {
+			var _this = this.direction;
+			_this.x = 0;
+			if(!_this._construct) {
+				if(_this.listen_x != null && !_this.ignore_listeners) {
+					_this.listen_x(0);
+				}
+			}
+			var _this1 = this.direction;
+			_this1.y = 0;
+			if(!_this1._construct) {
+				if(_this1.listen_y != null && !_this1.ignore_listeners) {
+					_this1.listen_y(0);
+				}
+			}
+		}
 	}
 	,handle_input: function() {
 		if(Luxe.input.inputpressed("left")) {
@@ -3819,7 +3839,7 @@ entities_Bullet.__name__ = ["entities","Bullet"];
 entities_Bullet.__super__ = luxe_Sprite;
 entities_Bullet.prototype = $extend(luxe_Sprite.prototype,{
 	update: function(dt) {
-		if(!this.used) {
+		if(!this.used && !C.PAUSED) {
 			var _g1 = 0;
 			var _g = C.enemies_alive.length;
 			while(_g1 < _g) {
@@ -3894,14 +3914,11 @@ var entities_Enemy = function(t,position) {
 		var _component2 = new components_PlayerAnimation();
 		this.component_count++;
 		this._components.add(_component2);
-		var _component3 = new components_Glow(16760992,512);
-		this.component_count++;
-		this._components.add(_component3);
 		hp = 4;
 	}
-	var _component4 = new components_Energy(hp);
+	var _component3 = new components_Energy(hp);
 	this.component_count++;
-	this._components.add(_component4);
+	this._components.add(_component3);
 	C.enemies_alive.push(this);
 };
 $hxClasses["entities.Enemy"] = entities_Enemy;
@@ -3912,10 +3929,16 @@ entities_Enemy.prototype = $extend(luxe_Sprite.prototype,{
 		var _this = Luxe.scene.entities;
 		this.player = __map_reserved["Player"] != null ? _this.getReserved("Player") : _this.h["Player"];
 		this.events.listen("die",$bind(this,this.die));
-	}
-	,update: function(dt) {
 		var _g = this.type;
 		if(_g == "red_led") {
+			this.state = "wandering";
+		}
+	}
+	,update: function(dt) {
+		var _g = this.state;
+		switch(_g) {
+		case "chasing":
+			this.movement.max_move_speed = 140;
 			var _this = this.player.get_pos();
 			var _this1 = new phoenix_Vector(_this.x,_this.y,_this.z,_this.w);
 			var other = this.get_pos();
@@ -4058,13 +4081,156 @@ entities_Enemy.prototype = $extend(luxe_Sprite.prototype,{
 				_this2.listen_z(_this2.z);
 			}
 			this.movement.direction = direction;
+			break;
+		case "wandering":
+			var _this3 = this.movement.direction;
+			if(Math.sqrt(_this3.x * _this3.x + _this3.y * _this3.y + _this3.z * _this3.z) == 0) {
+				var _this4 = this.movement.direction;
+				_this4.x = 1;
+				if(!_this4._construct) {
+					if(_this4.listen_x != null && !_this4.ignore_listeners) {
+						_this4.listen_x(1);
+					}
+				}
+				var _this5 = this.movement.direction;
+				var _this6 = Luxe.utils.random;
+				var min = 0;
+				var max = 2 * Math.PI;
+				if(max == null) {
+					max = min;
+					min = 0;
+				}
+				var min1 = min;
+				var max1 = max;
+				if(max1 == null) {
+					max1 = min1;
+					min1 = 0;
+				}
+				var value = Math.floor(((_this6.seed = _this6.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max1 - min1) + min1);
+				var len = Math.sqrt(_this5.x * _this5.x + _this5.y * _this5.y + _this5.z * _this5.z);
+				var _x3 = Math.cos(value) * len;
+				var _y3 = Math.sin(value) * len;
+				var prev4 = _this5.ignore_listeners;
+				_this5.ignore_listeners = true;
+				_this5.x = _x3;
+				if(!_this5._construct) {
+					if(_this5.listen_x != null && !_this5.ignore_listeners) {
+						_this5.listen_x(_x3);
+					}
+				}
+				_this5.y = _y3;
+				if(!_this5._construct) {
+					if(_this5.listen_y != null && !_this5.ignore_listeners) {
+						_this5.listen_y(_y3);
+					}
+				}
+				_this5.ignore_listeners = prev4;
+				if(_this5.listen_x != null && !_this5.ignore_listeners) {
+					_this5.listen_x(_this5.x);
+				}
+				if(_this5.listen_y != null && !_this5.ignore_listeners) {
+					_this5.listen_y(_this5.y);
+				}
+			}
+			this.movement.max_move_speed = 50;
+			var _g1 = this.movement.direction;
+			var _this7 = Luxe.utils.random;
+			var min2 = -0.3;
+			var max2 = 0.3;
+			if(max2 == null) {
+				max2 = min2;
+				min2 = 0;
+			}
+			var value1 = Math.atan2(_g1.y,_g1.x) + (((_this7.seed = _this7.seed * 16807 % 2147483647) / 2147483647 + 0.000000000233) * (max2 - min2) + min2);
+			var len1 = Math.sqrt(_g1.x * _g1.x + _g1.y * _g1.y + _g1.z * _g1.z);
+			var _x4 = Math.cos(value1) * len1;
+			var _y4 = Math.sin(value1) * len1;
+			var prev5 = _g1.ignore_listeners;
+			_g1.ignore_listeners = true;
+			_g1.x = _x4;
+			if(!_g1._construct) {
+				if(_g1.listen_x != null && !_g1.ignore_listeners) {
+					_g1.listen_x(_x4);
+				}
+			}
+			_g1.y = _y4;
+			if(!_g1._construct) {
+				if(_g1.listen_y != null && !_g1.ignore_listeners) {
+					_g1.listen_y(_y4);
+				}
+			}
+			_g1.ignore_listeners = prev5;
+			if(_g1.listen_x != null && !_g1.ignore_listeners) {
+				_g1.listen_x(_g1.x);
+			}
+			if(_g1.listen_y != null && !_g1.ignore_listeners) {
+				_g1.listen_y(_g1.y);
+			}
+			break;
+		}
+		var _g11 = this.type;
+		if(_g11 == "red_led") {
+			var tmp;
+			if(this.state == "wandering") {
+				if(this._components.get("Energy",false).value >= 4) {
+					var _this8 = this.get_pos();
+					var _this9 = new phoenix_Vector(_this8.x,_this8.y,_this8.z,_this8.w);
+					var other1 = this.player.get_pos();
+					if(other1 == null) {
+						throw new js__$Boot_HaxeError(luxe_DebugError.null_assertion("other was null"));
+					}
+					var _x5 = _this9.x - other1.x;
+					var _y5 = _this9.y - other1.y;
+					var _z3 = _this9.z - other1.z;
+					var prev6 = _this9.ignore_listeners;
+					_this9.ignore_listeners = true;
+					_this9.x = _x5;
+					if(!_this9._construct) {
+						if(_this9.listen_x != null && !_this9.ignore_listeners) {
+							_this9.listen_x(_x5);
+						}
+					}
+					_this9.y = _y5;
+					if(!_this9._construct) {
+						if(_this9.listen_y != null && !_this9.ignore_listeners) {
+							_this9.listen_y(_y5);
+						}
+					}
+					_this9.z = _z3;
+					if(!_this9._construct) {
+						if(_this9.listen_z != null && !_this9.ignore_listeners) {
+							_this9.listen_z(_z3);
+						}
+					}
+					_this9.ignore_listeners = prev6;
+					if(_this9.listen_x != null && !_this9.ignore_listeners) {
+						_this9.listen_x(_this9.x);
+					}
+					if(_this9.listen_y != null && !_this9.ignore_listeners) {
+						_this9.listen_y(_this9.y);
+					}
+					if(_this9.listen_z != null && !_this9.ignore_listeners) {
+						_this9.listen_z(_this9.z);
+					}
+					var _this10 = _this9;
+					tmp = Math.sqrt(_this10.x * _this10.x + _this10.y * _this10.y + _this10.z * _this10.z) < 400;
+				} else {
+					tmp = true;
+				}
+			} else {
+				tmp = false;
+			}
+			if(tmp) {
+				this.state = "chasing";
+			}
 		}
 	}
 	,die: function(e) {
+		HxOverrides.remove(C.enemies_alive,this);
 		this.destroy();
 	}
 	,ondestroy: function() {
-		HxOverrides.remove(C.enemies_alive,this);
+		luxe_Sprite.prototype.ondestroy.call(this);
 	}
 	,__class__: entities_Enemy
 });
@@ -4084,272 +4250,276 @@ entities_Gun.prototype = $extend(luxe_Sprite.prototype,{
 		this._listen(17,$bind(this,this.onmousedown),true);
 	}
 	,onmousedown: function(event) {
-		this.spawn_bullet();
+		if(!C.PAUSED) {
+			this.spawn_bullet();
+		}
 	}
 	,update: function(dt) {
-		var _this = Luxe.core.screen.cursor.get_pos();
-		var _this1 = new phoenix_Vector(_this.x,_this.y,_this.z,_this.w);
-		var other = Luxe.camera.get_pos();
-		if(other == null) {
-			throw new js__$Boot_HaxeError(luxe_DebugError.null_assertion("other was null"));
-		}
-		var _x = _this1.x + other.x;
-		var _y = _this1.y + other.y;
-		var _z = _this1.z + other.z;
-		var prev = _this1.ignore_listeners;
-		_this1.ignore_listeners = true;
-		_this1.x = _x;
-		if(!_this1._construct) {
+		if(!C.PAUSED) {
+			var _this = Luxe.core.screen.cursor.get_pos();
+			var _this1 = new phoenix_Vector(_this.x,_this.y,_this.z,_this.w);
+			var other = Luxe.camera.get_pos();
+			if(other == null) {
+				throw new js__$Boot_HaxeError(luxe_DebugError.null_assertion("other was null"));
+			}
+			var _x = _this1.x + other.x;
+			var _y = _this1.y + other.y;
+			var _z = _this1.z + other.z;
+			var prev = _this1.ignore_listeners;
+			_this1.ignore_listeners = true;
+			_this1.x = _x;
+			if(!_this1._construct) {
+				if(_this1.listen_x != null && !_this1.ignore_listeners) {
+					_this1.listen_x(_x);
+				}
+			}
+			_this1.y = _y;
+			if(!_this1._construct) {
+				if(_this1.listen_y != null && !_this1.ignore_listeners) {
+					_this1.listen_y(_y);
+				}
+			}
+			_this1.z = _z;
+			if(!_this1._construct) {
+				if(_this1.listen_z != null && !_this1.ignore_listeners) {
+					_this1.listen_z(_z);
+				}
+			}
+			_this1.ignore_listeners = prev;
 			if(_this1.listen_x != null && !_this1.ignore_listeners) {
-				_this1.listen_x(_x);
+				_this1.listen_x(_this1.x);
 			}
-		}
-		_this1.y = _y;
-		if(!_this1._construct) {
 			if(_this1.listen_y != null && !_this1.ignore_listeners) {
-				_this1.listen_y(_y);
+				_this1.listen_y(_this1.y);
 			}
-		}
-		_this1.z = _z;
-		if(!_this1._construct) {
 			if(_this1.listen_z != null && !_this1.ignore_listeners) {
-				_this1.listen_z(_z);
+				_this1.listen_z(_this1.z);
 			}
-		}
-		_this1.ignore_listeners = prev;
-		if(_this1.listen_x != null && !_this1.ignore_listeners) {
-			_this1.listen_x(_this1.x);
-		}
-		if(_this1.listen_y != null && !_this1.ignore_listeners) {
-			_this1.listen_y(_this1.y);
-		}
-		if(_this1.listen_z != null && !_this1.ignore_listeners) {
-			_this1.listen_z(_this1.z);
-		}
-		var _this2 = _this1;
-		var other1 = this.player.get_pos();
-		if(other1 == null) {
-			throw new js__$Boot_HaxeError(luxe_DebugError.null_assertion("other was null"));
-		}
-		var _x1 = _this2.x - other1.x;
-		var _y1 = _this2.y - other1.y;
-		var _z1 = _this2.z - other1.z;
-		var prev1 = _this2.ignore_listeners;
-		_this2.ignore_listeners = true;
-		_this2.x = _x1;
-		if(!_this2._construct) {
+			var _this2 = _this1;
+			var other1 = this.player.get_pos();
+			if(other1 == null) {
+				throw new js__$Boot_HaxeError(luxe_DebugError.null_assertion("other was null"));
+			}
+			var _x1 = _this2.x - other1.x;
+			var _y1 = _this2.y - other1.y;
+			var _z1 = _this2.z - other1.z;
+			var prev1 = _this2.ignore_listeners;
+			_this2.ignore_listeners = true;
+			_this2.x = _x1;
+			if(!_this2._construct) {
+				if(_this2.listen_x != null && !_this2.ignore_listeners) {
+					_this2.listen_x(_x1);
+				}
+			}
+			_this2.y = _y1;
+			if(!_this2._construct) {
+				if(_this2.listen_y != null && !_this2.ignore_listeners) {
+					_this2.listen_y(_y1);
+				}
+			}
+			_this2.z = _z1;
+			if(!_this2._construct) {
+				if(_this2.listen_z != null && !_this2.ignore_listeners) {
+					_this2.listen_z(_z1);
+				}
+			}
+			_this2.ignore_listeners = prev1;
 			if(_this2.listen_x != null && !_this2.ignore_listeners) {
-				_this2.listen_x(_x1);
+				_this2.listen_x(_this2.x);
 			}
-		}
-		_this2.y = _y1;
-		if(!_this2._construct) {
 			if(_this2.listen_y != null && !_this2.ignore_listeners) {
-				_this2.listen_y(_y1);
+				_this2.listen_y(_this2.y);
 			}
-		}
-		_this2.z = _z1;
-		if(!_this2._construct) {
 			if(_this2.listen_z != null && !_this2.ignore_listeners) {
-				_this2.listen_z(_z1);
+				_this2.listen_z(_this2.z);
 			}
-		}
-		_this2.ignore_listeners = prev1;
-		if(_this2.listen_x != null && !_this2.ignore_listeners) {
-			_this2.listen_x(_this2.x);
-		}
-		if(_this2.listen_y != null && !_this2.ignore_listeners) {
-			_this2.listen_y(_this2.y);
-		}
-		if(_this2.listen_z != null && !_this2.ignore_listeners) {
-			_this2.listen_z(_this2.z);
-		}
-		var offset = _this2;
-		var v = Math.sqrt(offset.x * offset.x + offset.y * offset.y + offset.z * offset.z);
-		if(v != 0) {
-			var _x2 = offset.x / v;
-			var _y2 = offset.y / v;
-			var _z2 = offset.z / v;
-			var prev2 = offset.ignore_listeners;
-			offset.ignore_listeners = true;
-			offset.x = _x2;
-			if(!offset._construct) {
+			var offset = _this2;
+			var v = Math.sqrt(offset.x * offset.x + offset.y * offset.y + offset.z * offset.z);
+			if(v != 0) {
+				var _x2 = offset.x / v;
+				var _y2 = offset.y / v;
+				var _z2 = offset.z / v;
+				var prev2 = offset.ignore_listeners;
+				offset.ignore_listeners = true;
+				offset.x = _x2;
+				if(!offset._construct) {
+					if(offset.listen_x != null && !offset.ignore_listeners) {
+						offset.listen_x(_x2);
+					}
+				}
+				offset.y = _y2;
+				if(!offset._construct) {
+					if(offset.listen_y != null && !offset.ignore_listeners) {
+						offset.listen_y(_y2);
+					}
+				}
+				offset.z = _z2;
+				if(!offset._construct) {
+					if(offset.listen_z != null && !offset.ignore_listeners) {
+						offset.listen_z(_z2);
+					}
+				}
+				offset.ignore_listeners = prev2;
 				if(offset.listen_x != null && !offset.ignore_listeners) {
-					offset.listen_x(_x2);
+					offset.listen_x(offset.x);
 				}
-			}
-			offset.y = _y2;
-			if(!offset._construct) {
 				if(offset.listen_y != null && !offset.ignore_listeners) {
-					offset.listen_y(_y2);
+					offset.listen_y(offset.y);
 				}
-			}
-			offset.z = _z2;
-			if(!offset._construct) {
 				if(offset.listen_z != null && !offset.ignore_listeners) {
-					offset.listen_z(_z2);
+					offset.listen_z(offset.z);
 				}
-			}
-			offset.ignore_listeners = prev2;
-			if(offset.listen_x != null && !offset.ignore_listeners) {
-				offset.listen_x(offset.x);
-			}
-			if(offset.listen_y != null && !offset.ignore_listeners) {
-				offset.listen_y(offset.y);
-			}
-			if(offset.listen_z != null && !offset.ignore_listeners) {
-				offset.listen_z(offset.z);
-			}
-		} else {
-			var prev3 = offset.ignore_listeners;
-			offset.ignore_listeners = true;
-			offset.x = 0;
-			if(!offset._construct) {
+			} else {
+				var prev3 = offset.ignore_listeners;
+				offset.ignore_listeners = true;
+				offset.x = 0;
+				if(!offset._construct) {
+					if(offset.listen_x != null && !offset.ignore_listeners) {
+						offset.listen_x(0);
+					}
+				}
+				offset.y = 0;
+				if(!offset._construct) {
+					if(offset.listen_y != null && !offset.ignore_listeners) {
+						offset.listen_y(0);
+					}
+				}
+				offset.z = 0;
+				if(!offset._construct) {
+					if(offset.listen_z != null && !offset.ignore_listeners) {
+						offset.listen_z(0);
+					}
+				}
+				offset.ignore_listeners = prev3;
 				if(offset.listen_x != null && !offset.ignore_listeners) {
-					offset.listen_x(0);
+					offset.listen_x(offset.x);
 				}
-			}
-			offset.y = 0;
-			if(!offset._construct) {
 				if(offset.listen_y != null && !offset.ignore_listeners) {
-					offset.listen_y(0);
+					offset.listen_y(offset.y);
 				}
-			}
-			offset.z = 0;
-			if(!offset._construct) {
 				if(offset.listen_z != null && !offset.ignore_listeners) {
-					offset.listen_z(0);
+					offset.listen_z(offset.z);
 				}
 			}
-			offset.ignore_listeners = prev3;
-			if(offset.listen_x != null && !offset.ignore_listeners) {
-				offset.listen_x(offset.x);
+			var _this3 = offset;
+			var _x3 = _this3.x * 42;
+			var _y3 = _this3.y * 42;
+			var _z3 = _this3.z * 42;
+			var prev4 = _this3.ignore_listeners;
+			_this3.ignore_listeners = true;
+			_this3.x = _x3;
+			if(!_this3._construct) {
+				if(_this3.listen_x != null && !_this3.ignore_listeners) {
+					_this3.listen_x(_x3);
+				}
 			}
-			if(offset.listen_y != null && !offset.ignore_listeners) {
-				offset.listen_y(offset.y);
+			_this3.y = _y3;
+			if(!_this3._construct) {
+				if(_this3.listen_y != null && !_this3.ignore_listeners) {
+					_this3.listen_y(_y3);
+				}
 			}
-			if(offset.listen_z != null && !offset.ignore_listeners) {
-				offset.listen_z(offset.z);
+			_this3.z = _z3;
+			if(!_this3._construct) {
+				if(_this3.listen_z != null && !_this3.ignore_listeners) {
+					_this3.listen_z(_z3);
+				}
 			}
-		}
-		var _this3 = offset;
-		var _x3 = _this3.x * 42;
-		var _y3 = _this3.y * 42;
-		var _z3 = _this3.z * 42;
-		var prev4 = _this3.ignore_listeners;
-		_this3.ignore_listeners = true;
-		_this3.x = _x3;
-		if(!_this3._construct) {
+			_this3.ignore_listeners = prev4;
 			if(_this3.listen_x != null && !_this3.ignore_listeners) {
-				_this3.listen_x(_x3);
+				_this3.listen_x(_this3.x);
 			}
-		}
-		_this3.y = _y3;
-		if(!_this3._construct) {
 			if(_this3.listen_y != null && !_this3.ignore_listeners) {
-				_this3.listen_y(_y3);
+				_this3.listen_y(_this3.y);
 			}
-		}
-		_this3.z = _z3;
-		if(!_this3._construct) {
 			if(_this3.listen_z != null && !_this3.ignore_listeners) {
-				_this3.listen_z(_z3);
+				_this3.listen_z(_this3.z);
 			}
-		}
-		_this3.ignore_listeners = prev4;
-		if(_this3.listen_x != null && !_this3.ignore_listeners) {
-			_this3.listen_x(_this3.x);
-		}
-		if(_this3.listen_y != null && !_this3.ignore_listeners) {
-			_this3.listen_y(_this3.y);
-		}
-		if(_this3.listen_z != null && !_this3.ignore_listeners) {
-			_this3.listen_z(_this3.z);
-		}
-		var _this4 = this.get_pos();
-		var _other = this.player.get_pos();
-		var _x4 = _other.x;
-		var _y4 = _other.y;
-		var _z4 = _other.z;
-		var _w = _other.w;
-		var prev5 = _this4.ignore_listeners;
-		_this4.ignore_listeners = true;
-		_this4.x = _x4;
-		if(!_this4._construct) {
+			var _this4 = this.get_pos();
+			var _other = this.player.get_pos();
+			var _x4 = _other.x;
+			var _y4 = _other.y;
+			var _z4 = _other.z;
+			var _w = _other.w;
+			var prev5 = _this4.ignore_listeners;
+			_this4.ignore_listeners = true;
+			_this4.x = _x4;
+			if(!_this4._construct) {
+				if(_this4.listen_x != null && !_this4.ignore_listeners) {
+					_this4.listen_x(_x4);
+				}
+			}
+			_this4.y = _y4;
+			if(!_this4._construct) {
+				if(_this4.listen_y != null && !_this4.ignore_listeners) {
+					_this4.listen_y(_y4);
+				}
+			}
+			_this4.z = _z4;
+			if(!_this4._construct) {
+				if(_this4.listen_z != null && !_this4.ignore_listeners) {
+					_this4.listen_z(_z4);
+				}
+			}
+			_this4.w = _w;
+			_this4.ignore_listeners = prev5;
 			if(_this4.listen_x != null && !_this4.ignore_listeners) {
-				_this4.listen_x(_x4);
+				_this4.listen_x(_this4.x);
 			}
-		}
-		_this4.y = _y4;
-		if(!_this4._construct) {
 			if(_this4.listen_y != null && !_this4.ignore_listeners) {
-				_this4.listen_y(_y4);
+				_this4.listen_y(_this4.y);
 			}
-		}
-		_this4.z = _z4;
-		if(!_this4._construct) {
 			if(_this4.listen_z != null && !_this4.ignore_listeners) {
-				_this4.listen_z(_z4);
+				_this4.listen_z(_this4.z);
 			}
-		}
-		_this4.w = _w;
-		_this4.ignore_listeners = prev5;
-		if(_this4.listen_x != null && !_this4.ignore_listeners) {
-			_this4.listen_x(_this4.x);
-		}
-		if(_this4.listen_y != null && !_this4.ignore_listeners) {
-			_this4.listen_y(_this4.y);
-		}
-		if(_this4.listen_z != null && !_this4.ignore_listeners) {
-			_this4.listen_z(_this4.z);
-		}
-		var _this5 = _this4;
-		if(offset == null) {
-			throw new js__$Boot_HaxeError(luxe_DebugError.null_assertion("other was null"));
-		}
-		var _x5 = _this5.x + offset.x;
-		var _y5 = _this5.y + offset.y;
-		var _z5 = _this5.z + offset.z;
-		var prev6 = _this5.ignore_listeners;
-		_this5.ignore_listeners = true;
-		_this5.x = _x5;
-		if(!_this5._construct) {
+			var _this5 = _this4;
+			if(offset == null) {
+				throw new js__$Boot_HaxeError(luxe_DebugError.null_assertion("other was null"));
+			}
+			var _x5 = _this5.x + offset.x;
+			var _y5 = _this5.y + offset.y;
+			var _z5 = _this5.z + offset.z;
+			var prev6 = _this5.ignore_listeners;
+			_this5.ignore_listeners = true;
+			_this5.x = _x5;
+			if(!_this5._construct) {
+				if(_this5.listen_x != null && !_this5.ignore_listeners) {
+					_this5.listen_x(_x5);
+				}
+			}
+			_this5.y = _y5;
+			if(!_this5._construct) {
+				if(_this5.listen_y != null && !_this5.ignore_listeners) {
+					_this5.listen_y(_y5);
+				}
+			}
+			_this5.z = _z5;
+			if(!_this5._construct) {
+				if(_this5.listen_z != null && !_this5.ignore_listeners) {
+					_this5.listen_z(_z5);
+				}
+			}
+			_this5.ignore_listeners = prev6;
 			if(_this5.listen_x != null && !_this5.ignore_listeners) {
-				_this5.listen_x(_x5);
+				_this5.listen_x(_this5.x);
 			}
-		}
-		_this5.y = _y5;
-		if(!_this5._construct) {
 			if(_this5.listen_y != null && !_this5.ignore_listeners) {
-				_this5.listen_y(_y5);
+				_this5.listen_y(_this5.y);
 			}
-		}
-		_this5.z = _z5;
-		if(!_this5._construct) {
 			if(_this5.listen_z != null && !_this5.ignore_listeners) {
-				_this5.listen_z(_z5);
+				_this5.listen_z(_this5.z);
 			}
-		}
-		_this5.ignore_listeners = prev6;
-		if(_this5.listen_x != null && !_this5.ignore_listeners) {
-			_this5.listen_x(_this5.x);
-		}
-		if(_this5.listen_y != null && !_this5.ignore_listeners) {
-			_this5.listen_y(_this5.y);
-		}
-		if(_this5.listen_z != null && !_this5.ignore_listeners) {
-			_this5.listen_z(_this5.z);
-		}
-		this.set_radians(Math.atan2(offset.y,offset.x));
-		if(this.get_rotation_z() > 90 || this.get_rotation_z() < -90) {
-			this.set_flipy(true);
-		} else {
-			this.set_flipy(false);
-		}
-		if(this.get_rotation_z() > 0) {
-			this.set_depth(11);
-		} else {
-			this.set_depth(9);
+			this.set_radians(Math.atan2(offset.y,offset.x));
+			if(this.get_rotation_z() > 90 || this.get_rotation_z() < -90) {
+				this.set_flipy(true);
+			} else {
+				this.set_flipy(false);
+			}
+			if(this.get_rotation_z() > 0) {
+				this.set_depth(11);
+			} else {
+				this.set_depth(9);
+			}
 		}
 	}
 	,spawn_bullet: function() {
@@ -4495,7 +4665,7 @@ entities_Gun.prototype = $extend(luxe_Sprite.prototype,{
 		if(_this2.listen_z != null && !_this2.ignore_listeners) {
 			_this2.listen_z(_this2.z);
 		}
-		this.player.events.fire("damage",{ amount : 2});
+		this.player.events.fire("damage",{ amount : 1});
 		var _this3 = this.get_pos();
 		new entities_Bullet(new phoenix_Vector(_this3.x,_this3.y,_this3.z,_this3.w),direction);
 	}
@@ -4504,6 +4674,26 @@ entities_Gun.prototype = $extend(luxe_Sprite.prototype,{
 		this._unlisten(17,$bind(this,this.onmousedown),true);
 	}
 	,__class__: entities_Gun
+});
+var entities_Overlay = function(message) {
+	if(message == null) {
+		message = "";
+	}
+	luxe_Entity.call(this,{ name : "Overlay"});
+	this.darkness = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color(0,0,0,0.8), depth : 100});
+	this.text = new luxe_Text({ pos : Luxe.camera.get_center(), point_size : 48, depth : 101, align : 2, text : message, color : new phoenix_Color().rgb(16777215)});
+};
+$hxClasses["entities.Overlay"] = entities_Overlay;
+entities_Overlay.__name__ = ["entities","Overlay"];
+entities_Overlay.__super__ = luxe_Entity;
+entities_Overlay.prototype = $extend(luxe_Entity.prototype,{
+	init: function() {
+		luxe_Entity.prototype.init.call(this);
+	}
+	,ondestroy: function() {
+		luxe_Entity.prototype.ondestroy.call(this);
+	}
+	,__class__: entities_Overlay
 });
 var entities_Player = function() {
 	var image = Luxe.resources.cache.get("assets/images/player_animation.png");
@@ -4524,9 +4714,15 @@ var entities_Player = function() {
 	var _component4 = new components_Glow(12648352,512);
 	this.component_count++;
 	var glow = this._components.add(_component4);
-	var _component5 = new components_Collision();
+	this.follow_light1 = new luxe_Sprite({ pos : new phoenix_Vector(0,0), size : new phoenix_Vector(0,0)});
+	var _this = this.follow_light1;
+	var _component5 = new components_Glow(12648352,1024);
+	_this.component_count++;
+	_this._components.add(_component5);
+	this.follow_light2 = new luxe_Sprite({ pos : new phoenix_Vector(0,0), size : new phoenix_Vector(0,0)});
+	var _component6 = new components_Collision();
 	this.component_count++;
-	this._components.add(_component5);
+	this._components.add(_component6);
 };
 $hxClasses["entities.Player"] = entities_Player;
 entities_Player.__name__ = ["entities","Player"];
@@ -4536,9 +4732,86 @@ entities_Player.prototype = $extend(luxe_Sprite.prototype,{
 		this.events.listen("die",$bind(this,this.die));
 	}
 	,update: function(dt) {
+		var _this = this.follow_light1.get_pos();
+		var _other = this.get_pos();
+		var _x = _other.x;
+		var _y = _other.y;
+		var _z = _other.z;
+		var _w = _other.w;
+		var prev = _this.ignore_listeners;
+		_this.ignore_listeners = true;
+		_this.x = _x;
+		if(!_this._construct) {
+			if(_this.listen_x != null && !_this.ignore_listeners) {
+				_this.listen_x(_x);
+			}
+		}
+		_this.y = _y;
+		if(!_this._construct) {
+			if(_this.listen_y != null && !_this.ignore_listeners) {
+				_this.listen_y(_y);
+			}
+		}
+		_this.z = _z;
+		if(!_this._construct) {
+			if(_this.listen_z != null && !_this.ignore_listeners) {
+				_this.listen_z(_z);
+			}
+		}
+		_this.w = _w;
+		_this.ignore_listeners = prev;
+		if(_this.listen_x != null && !_this.ignore_listeners) {
+			_this.listen_x(_this.x);
+		}
+		if(_this.listen_y != null && !_this.ignore_listeners) {
+			_this.listen_y(_this.y);
+		}
+		if(_this.listen_z != null && !_this.ignore_listeners) {
+			_this.listen_z(_this.z);
+		}
+		var _this1 = this.follow_light2.get_pos();
+		var _other1 = this.get_pos();
+		var _x1 = _other1.x;
+		var _y1 = _other1.y;
+		var _z1 = _other1.z;
+		var _w1 = _other1.w;
+		var prev1 = _this1.ignore_listeners;
+		_this1.ignore_listeners = true;
+		_this1.x = _x1;
+		if(!_this1._construct) {
+			if(_this1.listen_x != null && !_this1.ignore_listeners) {
+				_this1.listen_x(_x1);
+			}
+		}
+		_this1.y = _y1;
+		if(!_this1._construct) {
+			if(_this1.listen_y != null && !_this1.ignore_listeners) {
+				_this1.listen_y(_y1);
+			}
+		}
+		_this1.z = _z1;
+		if(!_this1._construct) {
+			if(_this1.listen_z != null && !_this1.ignore_listeners) {
+				_this1.listen_z(_z1);
+			}
+		}
+		_this1.w = _w1;
+		_this1.ignore_listeners = prev1;
+		if(_this1.listen_x != null && !_this1.ignore_listeners) {
+			_this1.listen_x(_this1.x);
+		}
+		if(_this1.listen_y != null && !_this1.ignore_listeners) {
+			_this1.listen_y(_this1.y);
+		}
+		if(_this1.listen_z != null && !_this1.ignore_listeners) {
+			_this1.listen_z(_this1.z);
+		}
 	}
 	,die: function(e) {
-		C.state.set("Lose");
+		if(!C.PAUSED) {
+			C.PAUSED = true;
+			new entities_Overlay("YOU LOSE!");
+		}
 	}
 	,ondestroy: function() {
 		luxe_Sprite.prototype.ondestroy.call(this);
@@ -4606,7 +4879,7 @@ entities_Powerup.prototype = $extend(luxe_Sprite.prototype,{
 		this.player = __map_reserved["Player"] != null ? _this.getReserved("Player") : _this.h["Player"];
 	}
 	,update: function(dt) {
-		if(!this.used) {
+		if(!this.used && !C.PAUSED) {
 			if(this.get_pos().x > this.player.get_pos().x - this.player.size.x / 2 && this.get_pos().x < this.player.get_pos().x + this.player.size.x / 2 && this.get_pos().y > this.player.get_pos().y - this.player.size.y / 2 && this.get_pos().y < this.player.get_pos().y + this.player.size.y / 2) {
 				this.player.events.fire("heal",{ amount : 5});
 				Luxe.audio.play(this.pickup_sound.source);
@@ -50059,13 +50332,16 @@ states_Game.prototype = $extend(luxe_State.prototype,{
 		new entities_Gun();
 	}
 	,onleave: function(_) {
-		Luxe.scene.empty();
 	}
 	,update: function(dt) {
 		Luxe.camera.set_center(new phoenix_Vector(Math.round(this.player.get_pos().x),Math.round(this.player.get_pos().y)));
 		this.glow_batcher_fill.set_pos(Luxe.camera.get_center());
 		this.darkness_over.set_pos(Luxe.camera.get_center());
 		this.darkness_under.set_pos(Luxe.camera.get_center());
+		if(!C.PAUSED && C.enemies_alive.length == 0) {
+			C.PAUSED = true;
+			new entities_Overlay("YOU WIN!");
+		}
 	}
 	,create_glow_batcher: function() {
 		C.glow_batcher = Luxe.renderer.create_batcher({ name : "Glow", layer : 2, camera : Luxe.camera.view});
@@ -50075,7 +50351,7 @@ states_Game.prototype = $extend(luxe_State.prototype,{
 	}
 	,create_darkness: function() {
 		this.darkness_under = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color().set(0,0,0,0.1), depth : 2});
-		this.darkness_over = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color().set(0,0,0,0.2), depth : 20});
+		this.darkness_over = new luxe_Sprite({ pos : Luxe.camera.get_center(), size : Luxe.core.screen.get_size(), color : new phoenix_Color().set(0,0,0,0.4), depth : 20});
 	}
 	,create_HUD: function() {
 		C.HUD = Luxe.renderer.create_batcher({ name : "HUD", layer : 3});
@@ -50179,6 +50455,7 @@ if(ArrayBuffer.prototype.slice == null) {
 }
 var Float32Array = $global.Float32Array || js_html_compat_Float32Array._new;
 var Uint8Array = $global.Uint8Array || js_html_compat_Uint8Array._new;
+C.PAUSED = false;
 C.floor_tiles = [3];
 C.enemies_alive = [];
 C.increment = 0;
